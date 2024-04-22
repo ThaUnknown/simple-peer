@@ -60,7 +60,7 @@
     "url": "git://github.com/thaunknown/simple-peer.git"
   },
   "scripts": {
-    "test": "npm run test-node && npm run test-browser",
+    "test": "npm run test-node",
     "test-browser-local": "airtap --preset local -- test/*.js",
     "test-node": "tape test/*.js",
     "test-node-debug": "cross-env DEBUG=* tape test/negotiation.js"
