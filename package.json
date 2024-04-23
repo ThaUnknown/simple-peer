@@ -31,7 +31,7 @@
     "speedometer": "^1.1.0",
     "string-to-stream": "^3.0.1",
     "tap-spec": "^5.0.0",
-    "tape": "^5.5.2",
+    "tape": "^5.7.5",
     "thunky": "^1.1.0",
     "ws": "^7.5.3"
   },
