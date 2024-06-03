@@ -14,7 +14,7 @@
   "dependencies": {
     "debug": "^4.3.4",
     "err-code": "^3.0.1",
-    "streamx": "^2.16.1",
+    "streamx": "^2.18.0",
     "uint8-util": "^2.2.5",
     "webrtc-polyfill": "^1.1.6"
   },
