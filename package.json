@@ -12,7 +12,7 @@
     "url": "https://github.com/thaunknown/simple-websocket/issues"
   },
   "dependencies": {
-    "debug": "^4.3.4",
+    "debug": "^4.3.5",
     "err-code": "^3.0.1",
     "streamx": "^2.16.1",
     "uint8-util": "^2.2.5",
