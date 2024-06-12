@@ -344,7 +344,7 @@ class Peer extends Duplex {
       this._pc = null
       this._channel = null
       if (err) this.emit('error', err)
-      this.emit("close")
+      this.emit('close')
       cb()
     }, 0)
   }
