@@ -103,7 +103,7 @@ class Peer extends Duplex {
 
     // We prefer feature detection whenever possible, but sometimes that's not
     // possible for certain implementations.
-    this._isReactNativeWebrtc = typeof this._pc._peerConnectionId === 'number'
+    this._isReactNativeWebrtc = typeof document !== "object"
 
     this._pc.oniceconnectionstatechange = () => {
       this._onIceStateChange()
@@ -682,6 +682,8 @@ class Peer extends Duplex {
             remote = selectedCandidatePair.googRemoteAddress.split(':')
             this.remoteAddress = remote[0]
             this.remotePort = Number(remote[1])
+          } else {
+            this.remotePort = Number(remote.port)
           }
           if (this.remoteAddress) {
             this.remoteFamily = this.remoteAddress.includes(':') ? 'IPv6' : 'IPv4'
@@ -810,7 +812,8 @@ class Peer extends Duplex {
     let data = event.data
     if (data instanceof ArrayBuffer) {
       data = new Uint8Array(data)
-    } else if (this.__objectMode === false) {
+    } else if (this.__objectMode === false
+      && this._isReactNativeWebrtc === false) {
       data = text2arr(data)
     }
     this.push(data)
