@@ -20,7 +20,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.24.7",
-    "@babel/preset-env": "^7.24.7",
+    "@babel/preset-env": "^7.25.2",
     "airtap": "^4.0.4",
     "airtap-manual": "^1.0.0",
     "airtap-system": "^0.1.0",
