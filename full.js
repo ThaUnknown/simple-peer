@@ -56,6 +56,9 @@ class Peer extends Duplex {
     this.allowHalfTrickle = opts.allowHalfTrickle !== undefined ? opts.allowHalfTrickle : false
     this.iceCompleteTimeout = opts.iceCompleteTimeout || ICECOMPLETE_TIMEOUT
 
+    // Ice restart often only makes sense if trickle is enabled https://github.com/feross/simple-peer/issues/579
+    this.iceRestartEnabled = 'iceRestartEnabled' !== undefined ? opts.iceRestartEnabled : (this.trickle === true)
+
     this._destroying = false
     this._connected = false
 
@@ -88,6 +91,7 @@ class Peer extends Duplex {
     this._sendersAwaitingStable = []
     this._senderMap = new Map()
     this._closingInterval = null
+    this._isRestarting = false
 
     this._remoteTracks = []
     this._remoteStreams = []
@@ -386,7 +390,7 @@ class Peer extends Duplex {
       this._batchedNegotiation = false
       if (this.initiator || !this._firstNegotiation) {
         this._debug('starting batched negotiation')
-        this.negotiate()
+        this.negotiate(this._isRestarting)
       } else {
         this._debug('non-initiator initial negotiation request discarded')
       }
@@ -394,7 +398,7 @@ class Peer extends Duplex {
     })
   }
 
-  negotiate () {
+  negotiate (restart = false) {
     if (this._destroying) return
     if (this.destroyed) throw errCode(new Error('cannot negotiate after peer is destroyed'), 'ERR_DESTROYED')
 
@@ -405,9 +409,10 @@ class Peer extends Duplex {
       } else {
         this._debug('start negotiation')
         setTimeout(() => { // HACK: Chrome crashes if we immediately call createOffer
-          this._createOffer()
+          this._createOffer(restart)
         }, 0)
       }
+      this._isRestarting = restart
     } else {
       if (this._isNegotiating) {
         this._queuedNegotiation = true
@@ -423,6 +428,16 @@ class Peer extends Duplex {
     this._isNegotiating = true
   }
 
+  restart () {
+    if (this.initiator) {
+      if (this._isRestarting) {
+        this._debug('already restarting, ignoring')
+      } else {
+        this._pc.restartIce()
+      }
+    }
+  }
+
   _final (cb) {
     if (!this._readableState.ended) this.push(null)
     cb(null)
@@ -430,7 +445,7 @@ class Peer extends Duplex {
 
   __destroy (err) {
     this.end()
-    this._destroy(() => {}, err)
+    this._destroy(() => { }, err)
   }
 
   _destroy (cb, err) {
@@ -461,7 +476,7 @@ class Peer extends Duplex {
       if (this._channel) {
         try {
           this._channel.close()
-        } catch (err) {}
+        } catch (err) { }
 
         // allow events concurrent with destruction to be handled
         this._channel.onmessage = null
@@ -472,7 +487,7 @@ class Peer extends Duplex {
       if (this._pc) {
         try {
           this._pc.close()
-        } catch (err) {}
+        } catch (err) { }
 
         // allow events concurrent with destruction to be handled
         this._pc.oniceconnectionstatechange = null
@@ -592,8 +607,9 @@ class Peer extends Duplex {
     }, this.iceCompleteTimeout)
   }
 
-  _createOffer () {
+  _createOffer (restart = false) {
     if (this.destroyed) return
+    if (restart) this.offerOptions.iceRestart = true
 
     this._pc.createOffer(this.offerOptions)
       .then(offer => {
@@ -683,8 +699,10 @@ class Peer extends Duplex {
 
   _onConnectionStateChange () {
     if (this.destroyed || this._destroying) return
-    if (this._pc.connectionState === 'failed') {
+    if (this._pc.connectionState === 'failed' && !this.iceRestartEnabled) {
       this.__destroy(errCode(new Error('Connection failed.'), 'ERR_CONNECTION_FAILURE'))
+    } else if (this._pc.connectionState === 'failed' && this.iceRestartEnabled) {
+      this._pc.restartIce()
     }
   }
 
@@ -700,11 +718,20 @@ class Peer extends Duplex {
     )
     this.emit('iceStateChange', iceConnectionState, iceGatheringState)
 
-    if (iceConnectionState === 'connected' || iceConnectionState === 'completed') {
+    if (iceConnectionState === 'connected' || iceGatheringState === 'completed') {
+      this._isRestarting = false
       this._pcReady = true
       this._maybeReady()
     }
-    if (iceConnectionState === 'failed') {
+
+    if (iceConnectionState === 'failed' && this.iceRestartEnabled) {
+      if (this.initiator && !this._isRestarting) {
+        this._isNegotiating = false
+        this._isRestarting = true
+
+        this._needsNegotiation()
+      }
+    } else if (iceConnectionState === 'failed' && !this.iceRestartEnabled) {
       this.__destroy(errCode(new Error('Ice connection failed.'), 'ERR_ICE_CONNECTION_FAILURE'))
     }
     if (iceConnectionState === 'closed') {
@@ -734,7 +761,7 @@ class Peer extends Duplex {
           cb(null, reports)
         }, err => cb(err))
 
-    // Single-parameter callback-based getStats() (non-standard)
+      // Single-parameter callback-based getStats() (non-standard)
     } else if (this._pc.getStats.length > 0) {
       this._pc.getStats(res => {
         // If we destroy connection in `connect` callback this code might happen to run when actual connection is already closed
@@ -754,8 +781,8 @@ class Peer extends Duplex {
         cb(null, reports)
       }, err => cb(err))
 
-    // Unknown browser, skip getStats() since it's anyone's guess which style of
-    // getStats() they implement.
+      // Unknown browser, skip getStats() since it's anyone's guess which style of
+      // getStats() they implement.
     } else {
       cb(null, [])
     }
@@ -763,7 +790,7 @@ class Peer extends Duplex {
 
   _maybeReady () {
     this._debug('maybeReady pc %s channel %s', this._pcReady, this._channelReady)
-    if (this._connected || this._connecting || !this._pcReady || !this._channelReady) return
+    if (((this._connected || this._connecting) && !this._isRestarting) || !this._pcReady || !this._channelReady) return
 
     this._connecting = true
 
