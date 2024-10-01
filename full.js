@@ -58,8 +58,8 @@ class Peer extends Duplex {
     this.iceCompleteTimeout = opts.iceCompleteTimeout || ICECOMPLETE_TIMEOUT
 
     // Ice restart often only makes sense if trickle is enabled https://github.com/feross/simple-peer/issues/579
-    this.iceRestartEnabled = opts.iceRestartEnabled !== undefined ? opts.iceRestartEnabled : (this.trickle === true)
-    this.iceFailureRecoveryTimeout = opts.iceFailureRecoveryTimeout || ICEFAILURE_RECOVERY_TIMEOUT // how long to wait for recovery from failed state
+    this.iceRestartEnabled = opts.iceRestartEnabled ?? ((this.trickle === true) ? "onFailure" : false)
+    this.iceFailureRecoveryTimeout = opts.iceFailureRecoveryTimeout ?? ICEFAILURE_RECOVERY_TIMEOUT // how long to wait for recovery from failed state
     this._iceFailureRecoveryTimer = null
 
     this._destroying = false
@@ -430,6 +430,16 @@ class Peer extends Duplex {
     this._isNegotiating = true
   }
 
+  /**
+   * Trigger an ICE Restart on the WebRTC connection.
+   * This will re-gather network candidates and negotiate the best network route between peers.
+   * Useful for re-establishing connection or improving latency between peers when networks change.
+   * ICE Restarts should not cause media or data pauses, unless the connection cannot be established.
+   *
+   * @warn Ice restarts are only allowed on the initiator peer!
+   * @returns {boolean} - Returns true if ice restart was initiated successfully;
+   *                      false if the connection is not the initiator or is already doing an ice restart.
+   */
   restartIce () {
     if (!this.initiator) {
       this._debug('restartIce() only works for the initiator')
@@ -439,7 +449,8 @@ class Peer extends Duplex {
       return false;
     } else {
       this._iceComplete = false // Reset iceComplete
-      this._iceCompleteTimer = null // Clear iceCompleteTimeout too
+      clearTimeout(this._iceCompleteTimer) // Clear _iceCompleteTimer too
+      this._iceCompleteTimer = null // Clear _iceCompleteTimer too
       this._isNegotiating = false // allow renegotiation and createOffer to happen
       this._isRestartingIce = true;
       if (this._pc.restartIce) this._pc.restartIce()
@@ -711,15 +722,18 @@ class Peer extends Duplex {
 
   _onConnectionStateChange () {
     if (this.destroyed || this._destroying) return
-    if (this._pc.connectionState === 'failed' && !this.iceRestartEnabled) {
-      this.__destroy(errCode(new Error('Connection failed.'), 'ERR_CONNECTION_FAILURE'))
-    } else if (this._pc.connectionState === 'failed' && this.iceRestartEnabled) {
-      // Timesout and calls __destroy() after some time if we dont re-establish connection (must get called b4 restartIce())
-      this._startIceFailureRecoveryTimeout()
-      if (this.initiator && !this._isRestartingIce) {
-        this.restartIce()
+    if (this._pc.connectionState === 'failed') {
+      if (this.iceRestartEnabled || this._isRestartingIce) {
+        this._startIceFailureRecoveryTimeout()
+      } else {
+        return this.__destroy(errCode(new Error('Connection failed.'), 'ERR_CONNECTION_FAILURE'))
       }
-    } else if (this._pc.connectionState === 'disconnected' && this.iceRestartEnabled === 'onDisconnect') {
+    }
+
+    if (
+      (this._pc.connectionState === 'failed' && this.iceRestartEnabled === 'onFailure') ||
+      (this._pc.connectionState === 'disconnected' && this.iceRestartEnabled === 'onDisconnect')
+    ) {
       if (this.initiator && !this._isRestartingIce) {
         this.restartIce()
       }
@@ -753,21 +767,21 @@ class Peer extends Duplex {
       this._maybeReady()
     }
 
-    if (iceConnectionState === 'failed' && this.iceRestartEnabled) {
-      // Timesout and calls __destroy() after some time if we dont re-establish connection (must get called b4 restartIce())
-      this._startIceFailureRecoveryTimeout()
-      if (this.initiator && !this._isRestartingIce) {
-        this.restartIce()
-      }
-    } else if (iceConnectionState === 'disconnected' && this.iceRestartEnabled === 'onDisconnect') {
-      if (this.initiator && !this._isRestartingIce) {
-        this.restartIce()
-      }
-    } else if (iceConnectionState === 'failed' && !this.iceRestartEnabled) {
-      this.__destroy(errCode(new Error('Ice connection failed.'), 'ERR_ICE_CONNECTION_FAILURE'))
-    }
     if (iceConnectionState === 'closed') {
       this.__destroy(errCode(new Error('Ice connection closed.'), 'ERR_ICE_CONNECTION_CLOSED'))
+    } else if (iceConnectionState === 'failed' && !this.iceRestartEnabled && !this._isRestartingIce) {
+      this.__destroy(errCode(new Error('Ice connection failed.'), 'ERR_ICE_CONNECTION_FAILURE'))
+    } else if (iceConnectionState === 'failed' && (this.iceRestartEnabled || this._isRestartingIce)) {
+      this._startIceFailureRecoveryTimeout()
+    }
+
+    if (
+      (iceConnectionState === 'failed' && this.iceRestartEnabled === 'onFailure') ||
+      (iceConnectionState === 'disconnected' && this.iceRestartEnabled === 'onDisconnect')
+    ) {
+      if (this.initiator && !this._isRestartingIce) {
+        this.restartIce()
+      }
     }
   }
 
@@ -1078,12 +1092,14 @@ class Peer extends Duplex {
     Debug.apply(null, args)
   }
 
+  /** Timesout and calls __destroy() after some time if we dont re-establish connection (must get called before restartIce()) */
   _startIceFailureRecoveryTimeout () {
     if (this.destroyed) return
     if (this._iceFailureRecoveryTimer) return
     this._debug('started iceFailureRecovery timeout')
     this._iceComplete = false // Reset iceComplete
-    this._iceCompleteTimer = null // Clear iceCompleteTimeout too
+    clearTimeout(this._iceCompleteTimer) // Clear _iceCompleteTimer too
+    this._iceCompleteTimer = null // Clear _iceCompleteTimer too
     this._iceFailureRecoveryTimer = setTimeout(() => {
       const iceConnectionState = this._pc.iceConnectionState
       const iceGatheringState = this._pc.iceGatheringState
