@@ -219,7 +219,7 @@ test('renegotiation after restart', function (t) {
 
   peer2.on('stream', function () {
     t.pass('got peer2 stream')
-    peer1.restart()
+    peer1.restartIce()
   })
 
   let tracks = 1
