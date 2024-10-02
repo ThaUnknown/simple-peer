@@ -448,6 +448,13 @@ class Peer extends Duplex {
       this._debug('Already restarting ice, ignoring restartIce()')
       return false;
     } else {
+      if (this._iceFailureRecoveryTimer != null) {
+        // restart the recovery timer when restartIce() is manually called,
+        // this._iceFailureRecoveryTimer being non-null indicates that ice previously entered the failed state and has not recovered.
+        clearTimeout(this._iceFailureRecoveryTimer)
+        this._iceFailureRecoveryTimer = null;
+        this._startIceFailureRecoveryTimeout()
+      }
       this._iceComplete = false // Reset iceComplete
       clearTimeout(this._iceCompleteTimer) // Clear _iceCompleteTimer too
       this._iceCompleteTimer = null // Clear _iceCompleteTimer too
@@ -457,6 +464,29 @@ class Peer extends Duplex {
       this._needsNegotiation() // Start a new negotiating cycle
       return true
     }
+  }
+
+  /**
+   * calls __destroy() after the iceFailureRecoveryTimeout time if we dont
+   * re-establish connection (this function is called once ice enters the failed state)
+   **/
+  _startIceFailureRecoveryTimeout () {
+    if (this.destroyed) return
+    if (this._iceFailureRecoveryTimer != null) return
+    this._debug('started iceFailureRecovery timeout')
+    this._iceComplete = false // Reset iceComplete
+    clearTimeout(this._iceCompleteTimer) // Clear _iceCompleteTimer too
+    this._iceCompleteTimer = null // Clear _iceCompleteTimer too
+    this._iceFailureRecoveryTimer = setTimeout(() => {
+      const iceConnectionState = this._pc.iceConnectionState
+      const iceGatheringState = this._pc.iceGatheringState
+      this._debug('checking iceFailureRecovery timeout', iceConnectionState, iceGatheringState, this._iceComplete)
+      let hasFailedToRecover = !(iceConnectionState === 'connected' || iceConnectionState === 'completed')
+      if (hasFailedToRecover) {
+        this._debug('iceFailureRecovery timeout completed - failed')
+        this.__destroy(errCode(new Error('Ice connection recovery failed.'), 'ERR_ICE_CONNECTION_FAILURE'))
+      }
+    }, this.iceFailureRecoveryTimeout)
   }
 
   _final (cb) {
@@ -757,7 +787,7 @@ class Peer extends Duplex {
     }
 
     if (iceConnectionState === 'connected' || iceConnectionState === 'completed') {
-      if (this._iceFailureRecoveryTimer) {
+      if (this._iceFailureRecoveryTimer != null) {
         clearTimeout(this._iceFailureRecoveryTimer)
         this._iceFailureRecoveryTimer = null
       }
@@ -1090,26 +1120,6 @@ class Peer extends Duplex {
     const args = [].slice.call(arguments)
     args[0] = '[' + this._id + '] ' + args[0]
     Debug.apply(null, args)
-  }
-
-  /** Timesout and calls __destroy() after some time if we dont re-establish connection (must get called before restartIce()) */
-  _startIceFailureRecoveryTimeout () {
-    if (this.destroyed) return
-    if (this._iceFailureRecoveryTimer) return
-    this._debug('started iceFailureRecovery timeout')
-    this._iceComplete = false // Reset iceComplete
-    clearTimeout(this._iceCompleteTimer) // Clear _iceCompleteTimer too
-    this._iceCompleteTimer = null // Clear _iceCompleteTimer too
-    this._iceFailureRecoveryTimer = setTimeout(() => {
-      const iceConnectionState = this._pc.iceConnectionState
-      const iceGatheringState = this._pc.iceGatheringState
-      this._debug('checking iceFailureRecovery timeout', iceConnectionState, iceGatheringState, this._iceComplete)
-      let hasFailedToRecover = !(iceConnectionState === 'connected' || iceConnectionState === 'completed')
-      if (hasFailedToRecover) {
-        this._debug('iceFailureRecovery timeout completed - failed')
-        this.__destroy(errCode(new Error('Ice connection recovery failed.'), 'ERR_ICE_CONNECTION_FAILURE'))
-      }
-    }, this.iceFailureRecoveryTimeout)
   }
 }
 
