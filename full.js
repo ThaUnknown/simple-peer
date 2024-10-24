@@ -57,8 +57,9 @@ class Peer extends Duplex {
     this.allowHalfTrickle = opts.allowHalfTrickle !== undefined ? opts.allowHalfTrickle : false
     this.iceCompleteTimeout = opts.iceCompleteTimeout || ICECOMPLETE_TIMEOUT
 
-    // Ice restart often only makes sense if trickle is enabled https://github.com/feross/simple-peer/issues/579
-    this.iceRestartEnabled = opts.iceRestartEnabled ?? ((this.trickle === true) ? "onFailure" : false)
+    // Ice restart often only makes sense if trickle is enabled, and isn't currently supported in wrtc node polyfill https://github.com/feross/simple-peer/issues/579
+    this.iceRestartEnabled = opts.iceRestartEnabled ?? ((this.trickle === true && !opts.wrtc) ? "onFailure" : false)
+    if (this.iceRestartEnabled === true) this.iceRestartEnabled = "onFailure" // default to "onFailure" if user mistakenly passes true instead of a string
     this.iceFailureRecoveryTimeout = opts.iceFailureRecoveryTimeout ?? ICEFAILURE_RECOVERY_TIMEOUT // how long to wait for recovery from failed state
     this._iceFailureRecoveryTimer = null
 
@@ -441,6 +442,7 @@ class Peer extends Duplex {
    *                      false if the connection is not the initiator or is already doing an ice restart.
    */
   restartIce () {
+    if (this.destroyed || this._destroying) return false;
     if (!this.initiator) {
       this._debug('restartIce() only works for the initiator')
       return false;
@@ -449,8 +451,8 @@ class Peer extends Duplex {
       return false;
     } else {
       if (this._iceFailureRecoveryTimer != null) {
-        // restart the recovery timer when restartIce() is manually called,
-        // this._iceFailureRecoveryTimer being non-null indicates that ice previously entered the failed state and has not recovered.
+        // Restart the recovery timer when restartIce() is manually called,
+        // Note: this._iceFailureRecoveryTimer being non-null indicates that ice previously entered the failed state and has not recovered by now.
         clearTimeout(this._iceFailureRecoveryTimer)
         this._iceFailureRecoveryTimer = null;
         this._startIceFailureRecoveryTimeout()
@@ -471,7 +473,7 @@ class Peer extends Duplex {
    * re-establish connection (this function is called once ice enters the failed state)
    **/
   _startIceFailureRecoveryTimeout () {
-    if (this.destroyed) return
+    if (this.destroyed || this._destroying) return
     if (this._iceFailureRecoveryTimer != null) return
     this._debug('started iceFailureRecovery timeout')
     this._iceComplete = false // Reset iceComplete
@@ -784,6 +786,7 @@ class Peer extends Duplex {
 
     if (iceGatheringState === 'complete') {
       this._iceComplete = true
+      this.emit('_iceComplete')
     }
 
     if (iceConnectionState === 'connected' || iceConnectionState === 'completed') {
@@ -791,10 +794,11 @@ class Peer extends Duplex {
         clearTimeout(this._iceFailureRecoveryTimer)
         this._iceFailureRecoveryTimer = null
       }
-      this._iceComplete = true
-      this._isRestartingIce = false
       this._pcReady = true
+      this._iceComplete = true
+      this.emit('_iceComplete')
       this._maybeReady()
+      this._isRestartingIce = false
     }
 
     if (iceConnectionState === 'closed') {
@@ -866,7 +870,7 @@ class Peer extends Duplex {
 
   _maybeReady () {
     this._debug('maybeReady pc %s channel %s', this._pcReady, this._channelReady)
-    if (((this._connected || this._connecting) && !this._isRestartingIce) || !this._pcReady || !this._channelReady) return
+    if ((this._connected && !this._isRestartingIce) || this._connecting || !this._pcReady || !this._channelReady) return
 
     this._connecting = true
 
