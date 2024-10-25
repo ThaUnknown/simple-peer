@@ -5,6 +5,27 @@ import { Duplex } from 'streamx'
 import errCode from 'err-code'
 import { randomBytes, arr2hex, text2arr } from 'uint8-util'
 
+/** Type Definitions
+ * Simple Peer Options:
+ * @typedef {{
+ *   initiator: boolean;
+ *   channelName?: string;
+ *   channelConfig?: RTCDataChannelInit;
+ *   config?: RTCConfiguration;
+ *   offerOptions?: RTCOfferOptions;
+ *   answerOptions?: RTCAnswerOptions;
+ *   sdpTransform?: (string) => string;
+ *   wrtc?: { RTCPeerConnection: function, RTCSessionDescription: function, RTCIceCandidate: function };
+ *   stream?: false | MediaStream;
+ *   streams?: MediaStream[];
+ *   trickle?: boolean;
+ *   allowHalfTrickle?: boolean;
+ *   objectMode?: boolean;
+ *   iceRestartEnabled?: false | "onFailure" | "onDisconnect";
+ *   iceFailureRecoveryTimeout?: number; //miliseconds to wait for ice restart to complete after the ice state reaches "failed".
+ * }} SimplePeerOptions
+ */
+
 const Debug = debug('simple-peer')
 
 const MAX_BUFFERED_AMOUNT = 64 * 1024
@@ -24,11 +45,16 @@ function warn (message) {
 /**
  * WebRTC peer connection. Same API as node core `net.Socket`, plus a few extra methods.
  * Duplex stream.
- * @param {Object} opts
+ * @param {SimplePeerOptions} opts
  */
 class Peer extends Duplex {
+
   /** @type {RTCPeerConnection} */
   _pc
+
+  /** Create a new Simple Peer instance.
+   * @param {SimplePeerOptions} opts
+   */
   constructor (opts) {
     opts = Object.assign({
       allowHalfOpen: false
@@ -433,13 +459,11 @@ class Peer extends Duplex {
 
   /**
    * Trigger an ICE Restart on the WebRTC connection.
-   * This will re-gather network candidates and negotiate the best network route between peers.
+   * This will re-gather network candidates and find the best network route between peers.
    * Useful for re-establishing connection or improving latency between peers when networks change.
-   * ICE Restarts should not cause media or data pauses, unless the connection cannot be established.
-   *
+   * ICE Restarts should not cause media or data pauses, unless the connection cannot be re-established.
    * @warn Ice restarts are only allowed on the initiator peer!
-   * @returns {boolean} - Returns true if ice restart was initiated successfully;
-   *                      false if the connection is not the initiator or is already doing an ice restart.
+   * @returns {boolean} - Returns true if ice restart was initiated successfully; false if conditions aren't met for ice restart (not the initiator, already restarting ice, destroyed(ing) peer).
    */
   restartIce () {
     if (this.destroyed || this._destroying) return false;
@@ -452,7 +476,7 @@ class Peer extends Duplex {
     } else {
       if (this._iceFailureRecoveryTimer != null) {
         // Restart the recovery timer when restartIce() is manually called,
-        // Note: this._iceFailureRecoveryTimer being non-null indicates that ice previously entered the failed state and has not recovered by now.
+        // Note: this._iceFailureRecoveryTimer being non-null indicates that ice has previously entered the failed state and has not recovered by now.
         clearTimeout(this._iceFailureRecoveryTimer)
         this._iceFailureRecoveryTimer = null;
         this._startIceFailureRecoveryTimeout()
@@ -628,8 +652,8 @@ class Peer extends Duplex {
     }
   }
 
-  // When stream finishes writing, close socket. Half open connections are not
-  // supported.
+  /** When stream finishes writing, close socket. Half open connections are not
+   supported. */
   _onFinish () {
     if (this.destroyed) return
 
