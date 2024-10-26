@@ -91,6 +91,8 @@ class Peer extends Duplex {
 
     this._destroying = false
     this._connected = false
+    this._connecting = false
+    this._connectedOnce = false
 
     this.remoteAddress = undefined
     this.remoteFamily = undefined
@@ -109,13 +111,13 @@ class Peer extends Duplex {
 
     this._pcReady = false
     this._channelReady = false
-    this._iceComplete = false // ice candidate trickle done (got null candidate)
-    this._iceCompleteTimer = null // send an offer/answer anyway after some timeout
+    this._iceGatheringComplete = false // ice candidate trickle done (got null candidate)
+    this._iceGatheringCompleteTimer = null // send an offer/answer anyway after some timeout
     this._channel = null
     this._pendingCandidates = []
 
     this._isNegotiating = false // is this peer waiting for negotiation to complete?
-    this._isRestartingIce = false // turned true while restarting and false when connected
+    this._isRestartingIce = false // is true while restarting ice and false once connected (only on initiator side)
     this._firstNegotiation = true
     this._batchedNegotiation = false // batch synchronous negotiations
     this._queuedNegotiation = false // is there a queued negotiation request?
@@ -474,6 +476,7 @@ class Peer extends Duplex {
       this._debug('Already restarting ice, ignoring restartIce()')
       return false;
     } else {
+      this._debug('Restarting ICE')
       if (this._iceFailureRecoveryTimer != null) {
         // Restart the recovery timer when restartIce() is manually called,
         // Note: this._iceFailureRecoveryTimer being non-null indicates that ice has previously entered the failed state and has not recovered by now.
@@ -481,9 +484,9 @@ class Peer extends Duplex {
         this._iceFailureRecoveryTimer = null;
         this._startIceFailureRecoveryTimeout()
       }
-      this._iceComplete = false // Reset iceComplete
-      clearTimeout(this._iceCompleteTimer) // Clear _iceCompleteTimer too
-      this._iceCompleteTimer = null // Clear _iceCompleteTimer too
+      this._iceGatheringComplete = false // Reset iceComplete
+      clearTimeout(this._iceGatheringCompleteTimer) // Clear _iceGatheringCompleteTimer too
+      this._iceGatheringCompleteTimer = null // Clear _iceGatheringCompleteTimer too
       this._isNegotiating = false // allow renegotiation and createOffer to happen
       this._isRestartingIce = true;
       if (this._pc.restartIce) this._pc.restartIce()
@@ -500,13 +503,13 @@ class Peer extends Duplex {
     if (this.destroyed || this._destroying) return
     if (this._iceFailureRecoveryTimer != null) return
     this._debug('started iceFailureRecovery timeout')
-    this._iceComplete = false // Reset iceComplete
-    clearTimeout(this._iceCompleteTimer) // Clear _iceCompleteTimer too
-    this._iceCompleteTimer = null // Clear _iceCompleteTimer too
+    this._iceGatheringComplete = false // Reset iceComplete
+    clearTimeout(this._iceGatheringCompleteTimer) // Clear _iceGatheringCompleteTimer too
+    this._iceGatheringCompleteTimer = null // Clear _iceGatheringCompleteTimer too
     this._iceFailureRecoveryTimer = setTimeout(() => {
       const iceConnectionState = this._pc.iceConnectionState
       const iceGatheringState = this._pc.iceGatheringState
-      this._debug('checking iceFailureRecovery timeout', iceConnectionState, iceGatheringState, this._iceComplete)
+      this._debug('checking iceFailureRecovery timeout', iceConnectionState, iceGatheringState, this._iceGatheringComplete)
       let hasFailedToRecover = !(iceConnectionState === 'connected' || iceConnectionState === 'completed')
       if (hasFailedToRecover) {
         this._debug('iceFailureRecovery timeout completed - failed')
@@ -672,14 +675,13 @@ class Peer extends Duplex {
 
   _startIceCompleteTimeout () {
     if (this.destroyed) return
-    if (this._iceCompleteTimer) return
+    if (this._iceGatheringCompleteTimer) return
     this._debug('started iceComplete timeout')
-    this._iceCompleteTimer = setTimeout(() => {
-      if (!this._iceComplete) {
-        this._iceComplete = true
+    this._iceGatheringCompleteTimer = setTimeout(() => {
+      if (!this._iceGatheringComplete) {
         this._debug('iceComplete timeout completed')
         this.emit('iceTimeout')
-        this.emit('_iceComplete')
+        this._onIceGatheringComplete();
       }
     }, this.iceCompleteTimeout)
   }
@@ -709,8 +711,8 @@ class Peer extends Duplex {
         const onSuccess = () => {
           this._debug('createOffer success')
           if (this.destroyed) return
-          if (this.trickle || this._iceComplete) sendOffer()
-          else this.once('_iceComplete', sendOffer) // wait for candidates
+          if (this.trickle || this._iceGatheringComplete) sendOffer()
+          else this.once('_iceGatheringComplete', sendOffer) // wait for candidates
         }
 
         const onError = err => {
@@ -759,8 +761,8 @@ class Peer extends Duplex {
 
         const onSuccess = () => {
           if (this.destroyed) return
-          if (this.trickle || this._iceComplete) sendAnswer()
-          else this.once('_iceComplete', sendAnswer)
+          if (this.trickle || this._iceGatheringComplete) sendAnswer()
+          else this.once('_iceGatheringComplete', sendAnswer)
         }
 
         const onError = err => {
@@ -778,6 +780,12 @@ class Peer extends Duplex {
 
   _onConnectionStateChange () {
     if (this.destroyed || this._destroying) return
+    this._debug('_onConnectionStateChange ' + this._pc.connectionState)
+
+    if (this._pc.connectionState !== "connected") {
+      this._connected = false
+    }
+
     if (this._pc.connectionState === 'failed') {
       if (this.iceRestartEnabled || this._isRestartingIce) {
         this._startIceFailureRecoveryTimeout()
@@ -809,8 +817,7 @@ class Peer extends Duplex {
     this.emit('iceStateChange', iceConnectionState, iceGatheringState)
 
     if (iceGatheringState === 'complete') {
-      this._iceComplete = true
-      this.emit('_iceComplete')
+      this._onIceGatheringComplete();
     }
 
     if (iceConnectionState === 'connected' || iceConnectionState === 'completed') {
@@ -819,10 +826,8 @@ class Peer extends Duplex {
         this._iceFailureRecoveryTimer = null
       }
       this._pcReady = true
-      this._iceComplete = true
-      this.emit('_iceComplete')
-      this._maybeReady()
       this._isRestartingIce = false
+      this._maybeReady()
     }
 
     if (iceConnectionState === 'closed') {
@@ -840,6 +845,16 @@ class Peer extends Duplex {
       if (this.initiator && !this._isRestartingIce) {
         this.restartIce()
       }
+    }
+  }
+
+  _onIceGatheringComplete () {
+    if (!this._iceGatheringComplete) {
+      this._debug('iceGatheringComplete')
+      this._iceGatheringComplete = true
+      this.emit('_iceGatheringComplete')
+      clearTimeout(this._iceGatheringCompleteTimer)
+      this._iceGatheringCompleteTimer = null
     }
   }
 
@@ -894,7 +909,7 @@ class Peer extends Duplex {
 
   _maybeReady () {
     this._debug('maybeReady pc %s channel %s', this._pcReady, this._channelReady)
-    if ((this._connected && !this._isRestartingIce) || this._connecting || !this._pcReady || !this._channelReady) return
+    if (this._connecting || !this._pcReady || !this._channelReady) return
 
     this._connecting = true
 
@@ -1018,15 +1033,22 @@ class Peer extends Duplex {
           cb(null)
         }
 
-        // If `bufferedAmountLowThreshold` and 'onbufferedamountlow' are unsupported,
-        // fallback to using setInterval to implement backpressure.
-        if (typeof this._channel.bufferedAmountLowThreshold !== 'number') {
-          this._interval = setInterval(() => this._onInterval(), 150)
-          if (this._interval.unref) this._interval.unref()
-        }
+        if (!this._connectedOnce) {
+          this._connectedOnce = true
 
-        this._debug('connect')
-        this.emit('connect')
+          // If `bufferedAmountLowThreshold` and 'onbufferedamountlow' are unsupported,
+          // fallback to using setInterval to implement backpressure.
+          if (typeof this._channel.bufferedAmountLowThreshold !== 'number') {
+            this._interval = setInterval(() => this._onInterval(), 150)
+            if (this._interval.unref) this._interval.unref()
+          }
+
+          this._debug('connect')
+          this.emit('connect')
+        } else {
+          this._debug('reconnect')
+          this.emit('reconnect')
+        }
       })
     }
     findCandidatePair()
@@ -1078,9 +1100,9 @@ class Peer extends Duplex {
           sdpMid: event.candidate.sdpMid
         }
       })
-    } else if (!event.candidate && !this._iceComplete) {
-      this._iceComplete = true
-      this.emit('_iceComplete')
+    } else if (!event.candidate && !this._iceGatheringComplete) {
+      // a null ICE candidate indicates that the ice gathering process is finished
+      this._onIceGatheringComplete()
     }
     // as soon as we've received one valid candidate start timeout
     if (event.candidate) {

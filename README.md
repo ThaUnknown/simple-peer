@@ -441,6 +441,12 @@ peer.on('stream', stream => {
 
 Received a remote audio/video track. Streams may contain multiple tracks.
 
+### `peer.on('reconnect', () => {})`
+
+Fired when the peer connection has been re-established after a temporary disconnection due to network changes (ICE Restart) or, in some cases, successful renegotiation.
+
+The connection is ready to use. The local and remote network canidates & IP addresses may have changed.
+
 ### `peer.on('close', () => {})`
 
 Called when the peer connection has closed.
