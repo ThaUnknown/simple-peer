@@ -193,11 +193,16 @@ test('negotiated channels', function (t) {
   })
 })
 
-test('renegotiation after restart', function (t) {
-  t.plan(4)
+test('ice restart causes renegotiation', function (t) {
+  if (!process.browser) return t.end()
+  t.plan(8)
+  t.timeoutAfter(20000)
 
-  const peer1 = new Peer({ config, initiator: true, wrtc: common.wrtc })
-  const peer2 = new Peer({ config, wrtc: common.wrtc })
+  const peer1 = new Peer({ initiator: true, iceRestartEnabled: "onDisconnect" })
+  const peer2 = new Peer({ iceRestartEnabled: "onDisconnect" })
+
+  // peer1._debug = (...args) => { console.log('peer1 ' + args.shift(), ...args) }
+  // peer2._debug = (...args) => { console.log('peer2 ' + args.shift(), ...args) }
 
   peer1.on('signal', function (data) {
     if (!peer2.destroyed) peer2.signal(data)
@@ -206,24 +211,83 @@ test('renegotiation after restart', function (t) {
     if (!peer1.destroyed) peer1.signal(data)
   })
 
-  peer1.on('connect', function () {
-    peer1.addStream(common.getMediaStream())
-  })
-  peer2.on('connect', function () {
-    peer2.addStream(common.getMediaStream())
-  })
+  peer1.once('connect', tryTest)
+  peer2.once('connect', tryTest)
 
-  peer1.on('stream', function () {
-    t.pass('got peer1 stream')
-  })
+  function tryTest () {
+    if (!peer1.connected || !peer2.connected) return
 
-  peer2.on('stream', function () {
-    t.pass('got peer2 stream')
-    peer1.restartIce()
-  })
+    peer1.restartIce();
+    setTimeout(() => {
+      t.equal(peer1.restartIce(), false, 'peer1 calling restartIce() again in quick succession should return false because we are already restarting ice')
+    }, 0) // test that calling restartIce multiple times doesn't break anything
+    t.equal(peer2.restartIce(), false, 'peer2 restartIce should return false because peer2 is not the initiator')
 
-  let tracks = 1
-  peer2.on('track', function () {
-    t.pass(`got peer2 track ${tracks++}`)
-  })
+    peer1.once('reconnect', function () {
+      t.pass('peer1 reconnect after ice restart')
+    })
+
+    peer2.once('reconnect', function () {
+      t.pass('peer2 reconnect after ice restart')
+    })
+
+    peer1.once('connect', function () {
+      t.fail('peer1 connect event after ice restart, should be reconnect')
+    })
+
+    peer2.once('connect', function () {
+      t.fail('peer2 connect event after ice restart, should be reconnect')
+    })
+
+    function onPeer1SignalState (state) {
+      if (state === 'stable') {
+        t.pass('peer1 stable after ice restart')
+        peer1.removeListener('signalingStateChange', onPeer1SignalState)
+      } else {
+        console.log('peer1 signalingStatechange = ' + state)
+      }
+    }
+
+    function onPeer2SignalState(state) {
+      if (state === 'stable') {
+        t.pass('peer2 stable after ice restart')
+        peer2.removeListener('signalingStateChange', onPeer2SignalState)
+      } else {
+        console.log('peer2 signalingStatechange = ' + state)
+      }
+    }
+
+    peer1.on('signalingStateChange', onPeer1SignalState)
+    peer2.on('signalingStateChange', onPeer2SignalState)
+
+    function onPeer1IceStateChange(state, gatheringState) {
+      if (state === 'connected' && gatheringState === 'complete') {
+        t.pass('peer1 got ice connected state after ice restart')
+        peer1.removeListener('iceStateChange', onPeer1IceStateChange)
+      } else {
+        console.log('peer1 iceStatechange: ice = ' + state + ', gathering = ' + gatheringState)
+      }
+    }
+
+    function onPeer2IceStateChange(state, gatheringState) {
+      if (state === 'connected' && gatheringState === 'complete') {
+        t.pass('peer2 got ice connected state after ice restart')
+        peer2.removeListener('iceStateChange', onPeer2IceStateChange)
+      } else {
+        console.log('peer2 iceStatechange: ice = ' + state + ', gathering = ' + gatheringState)
+      }
+    }
+
+    peer1.on('iceStateChange', onPeer1IceStateChange)
+    peer2.on('iceStateChange', onPeer2IceStateChange)
+
+    peer1.on('_iceGatheringComplete', function () {
+      console.log('peer1 _iceGatheringComplete')
+    })
+
+    peer2.on('_iceGatheringComplete', function () {
+      console.log('peer2 _iceGatheringComplete')
+    })
+
+  }
 })
