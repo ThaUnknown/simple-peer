@@ -6,24 +6,7 @@ import errCode from 'err-code'
 import { randomBytes, arr2hex, text2arr } from 'uint8-util'
 
 /** Type Definitions
- * Simple Peer Options:
- * @typedef {{
- *   initiator: boolean;
- *   channelName?: string;
- *   channelConfig?: RTCDataChannelInit;
- *   config?: RTCConfiguration;
- *   offerOptions?: RTCOfferOptions;
- *   answerOptions?: RTCAnswerOptions;
- *   sdpTransform?: (string) => string;
- *   wrtc?: { RTCPeerConnection: function, RTCSessionDescription: function, RTCIceCandidate: function };
- *   stream?: false | MediaStream;
- *   streams?: MediaStream[];
- *   trickle?: boolean;
- *   allowHalfTrickle?: boolean;
- *   objectMode?: boolean;
- *   iceRestartEnabled?: false | "onFailure" | "onDisconnect";
- *   iceFailureRecoveryTimeout?: number; //miliseconds to wait for ice restart to complete after the ice state reaches "failed".
- * }} SimplePeerOptions
+ * @typedef {import('./index.js').SimplePeerOptions} SimplePeerOptions
  */
 
 const Debug = debug('simple-peer')

@@ -2,12 +2,23 @@
 import Lite from './lite.js'
 import errCode from 'err-code'
 
+/** Type Definitions
+ * @typedef {import('./lite.js').SimplePeerLiteOptions & {
+ *  stream?: false | MediaStream;
+ *  streams?: MediaStream[];
+ * }} SimplePeerOptions
+ */
+
 /**
  * WebRTC peer connection. Same API as node core `net.Socket`, plus a few extra methods.
  * Duplex stream.
- * @param {Object} opts
+ * @param {SimplePeerOptions} opts
  */
 class Peer extends Lite {
+
+  /** Create a new Simple Peer instance.
+   * @param {SimplePeerOptions} opts
+   */
   constructor (opts = {}) {
     super(opts)
     if (!this._pc) return

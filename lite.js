@@ -5,6 +5,25 @@ import { Duplex } from 'streamx'
 import errCode from 'err-code'
 import { randomBytes, arr2hex, text2arr } from 'uint8-util'
 
+/** Type Definitions
+ * Simple Peer Lite Options:
+ * @typedef {{
+ *   initiator: boolean;
+ *   channelName?: string;
+ *   channelConfig?: RTCDataChannelInit;
+ *   config?: RTCConfiguration;
+ *   offerOptions?: RTCOfferOptions;
+ *   answerOptions?: RTCAnswerOptions;
+ *   sdpTransform?: (string) => string;
+ *   wrtc?: { RTCPeerConnection: function, RTCSessionDescription: function, RTCIceCandidate: function };
+ *   trickle?: boolean;
+ *   allowHalfTrickle?: boolean;
+ *   objectMode?: boolean;
+ *   iceRestartEnabled?: false | "onFailure" | "onDisconnect";
+ *   iceFailureRecoveryTimeout?: number; //miliseconds to wait for ice restart to complete after the ice state reaches "failed".
+ * }} SimplePeerLiteOptions
+ */
+
 const Debug = debug('simple-peer')
 
 const MAX_BUFFERED_AMOUNT = 64 * 1024
@@ -24,13 +43,16 @@ function warn (message) {
 /**
  * WebRTC peer connection. Same API as node core `net.Socket`, plus a few extra methods.
  * Duplex stream.
- * @param {Object} opts
+ * @param {SimplePeerOptions} opts
  */
 class Peer extends Duplex {
 
   /** @type {RTCPeerConnection} */
   _pc
 
+  /** Create a new Simple Peer instance.
+   * @param {SimplePeerOptions} opts
+   */
   constructor (opts) {
     opts = Object.assign({
       allowHalfOpen: false
@@ -57,6 +79,7 @@ class Peer extends Duplex {
     this.trickle = opts.trickle !== undefined ? opts.trickle : true
     this.allowHalfTrickle = opts.allowHalfTrickle !== undefined ? opts.allowHalfTrickle : false
     this.iceCompleteTimeout = opts.iceCompleteTimeout || ICECOMPLETE_TIMEOUT
+
     // Ice restart often only makes sense if trickle is enabled, and isn't currently supported in wrtc node polyfill https://github.com/feross/simple-peer/issues/579
     this.iceRestartEnabled = opts.iceRestartEnabled ?? ((this.trickle === true && !opts.wrtc) ? "onFailure" : false)
     if (this.iceRestartEnabled === true) this.iceRestartEnabled = "onFailure" // default to "onFailure" if user mistakenly passes true instead of a string
