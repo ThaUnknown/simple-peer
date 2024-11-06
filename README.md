@@ -279,7 +279,9 @@ If `opts` is specified, then the default options (shown below) will be overridde
   trickle: true,
   allowHalfTrickle: false,
   wrtc: {}, // RTCPeerConnection/RTCSessionDescription/RTCIceCandidate
-  objectMode: false
+  objectMode: false,
+  iceRestartEnabled: "onFailure",
+  iceFailureRecoveryTimeout: 5000
 }
 ```
 
@@ -301,6 +303,13 @@ The options do the following:
   - [`RTCIceCandidate`](https://www.w3.org/TR/webrtc/#dom-rtcicecandidate)
 
 - `objectMode` - set to `true` to create the stream in [Object Mode](https://nodejs.org/api/stream.html#stream_object_mode). In this mode, incoming string data is not automatically converted to `Buffer` objects.
+
+- `iceRestartEnabled` - attempt to automatically reconnect if the network path between peers changes. Warning: may crash firefox versions <= 47
+  - Set to "onDisconnect" to attempt reconnection when ICE state changes to disconnected (connection dropped temporarily and may not need restart)
+  - Set to "onFailure" to trigger reconnection when ICE state changes to failed (connection path fully broken, reconnection required).
+  - Set to `false` to disable automatic ICE restart - ICE restart can still be triggered manually using `peer.restartIce()`
+
+- `iceFailureRecoveryTimeout` - miliseconds to wait for ICE restart to complete after the ICE state reaches "failed".
 
 ### `peer.signal(data)`
 
@@ -431,6 +440,12 @@ peer.on('stream', stream => {
 ### `peer.on('track', (track, stream) => {})`
 
 Received a remote audio/video track. Streams may contain multiple tracks.
+
+### `peer.on('reconnect', () => {})`
+
+Fired when the peer connection has been re-established after a temporary disconnection due to network changes (ICE Restart) or, in some cases, successful renegotiation.
+
+The connection is ready to use. The local and remote network canidates & IP addresses may have changed.
 
 ### `peer.on('close', () => {})`
 
