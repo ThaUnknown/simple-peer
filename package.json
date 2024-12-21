@@ -17,6 +17,7 @@
   "exports": {
     ".": "./dist/index.js",
     "./lite": "./dist/lite.js",
+    "./full": "./dist/full.js",
     "./*": "./dist/*.js"
   },
   "dependencies": {
@@ -67,8 +68,7 @@
     "url": "git://github.com/thaunknown/simple-peer.git"
   },
   "scripts": {
-    "build": "mkdir -p dist && rm -rf ./dist/* && esbuild ./src/*.ts --outdir=./dist && npm run copy",
-    "copy": "cp ./full.js ./dist",
+    "build": "mkdir -p dist && rm -rf ./dist/* && esbuild ./src/*.ts --outdir=./dist",
     "test": "npm run test-node && npm run test-browser",
     "test-browser": "airtap --concurrency 1 --all -- test/*.js test/browser/*.js | tap-spec",
     "test-browser-local": "airtap --preset local -- test/*.js | tap-spec",

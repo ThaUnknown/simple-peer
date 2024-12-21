@@ -21,8 +21,8 @@ export type SignalEvent = {
   renegotiate?:boolean;
   candidate?:{
     candidate:string|null;
-    sdpMLineIndex:number;
-    sdpMid:string;
+    sdpMLineIndex:number|null;
+    sdpMid:string|null;
   };
   transceiverRequest?:{ kind, init };
   sdp?:any;
@@ -82,7 +82,7 @@ export interface PeerEvents {
  * WebRTC peer connection. Same API as node core `net.Socket`, plus a few extra methods.
  * Duplex stream.
  */
-class Peer extends Duplex<
+export class Peer extends Duplex<
     any,
     any,
     any,
@@ -288,13 +288,17 @@ class Peer extends Duplex<
     }
 
     address () {
-        return { port: this.localPort, family: this.localFamily, address: this.localAddress }
+        return {
+            port: this.localPort,
+            family: this.localFamily,
+            address: this.localAddress
+        }
     }
 
     /**
      * Add a Transceiver to the connection.
      */
-    addTransceiver (kind:string, init) {
+    addTransceiver (kind:string, init?:RTCRtpTransceiverInit) {
         if (this.destroying) return
         if (this.destroyed) {
             throw errCode(
@@ -334,7 +338,7 @@ class Peer extends Duplex<
         if (typeof data === 'string') {
             try {
                 data = JSON.parse(data)
-            } catch (err) {
+            } catch (_err) {
                 data = {}
             }
         }
@@ -390,7 +394,7 @@ class Peer extends Duplex<
         }
     }
 
-    _addIceCandidate (candidate) {
+    _addIceCandidate (candidate:RTCIceCandidateInit) {
         const iceCandidateObj = new RTCIceCandidate(candidate)
         this._pc?.addIceCandidate(iceCandidateObj)
             .catch(err => {
@@ -406,10 +410,10 @@ class Peer extends Duplex<
     }
 
     /**
-     * Send text/binary data to the remote peer.
-     * @param {ArrayBufferView|ArrayBuffer|Uint8Array|string|Blob} chunk
+     * Send binary data to the remote peer.
+     * @param {ArrayBuffer|Uint8Array} chunk
      */
-    send (chunk:ArrayBuffer|Uint8Array) {
+    send (chunk:ArrayBuffer|Uint8Array):void {
         if (this._destroying) return
         if (this.destroyed) {
             throw errCode(
@@ -417,13 +421,16 @@ class Peer extends Duplex<
                 'ERR_DESTROYED'
             )
         }
+
         this._channel?.send(chunk)
     }
 
-    _needsNegotiation () {
+    _needsNegotiation ():void {
         this._debug('_needsNegotiation')
         if (this._batchedNegotiation) return // batch synchronous renegotiations
+
         this._batchedNegotiation = true
+
         queueMicrotask(() => {
             this._batchedNegotiation = false
             if (this.initiator || !this._firstNegotiation) {
@@ -432,13 +439,19 @@ class Peer extends Duplex<
             } else {
                 this._debug('non-initiator initial negotiation request discarded')
             }
+
             this._firstNegotiation = false
         })
     }
 
-    negotiate () {
+    negotiate ():void {
         if (this._destroying) return
-        if (this.destroyed) throw errCode(new Error('cannot negotiate after peer is destroyed'), 'ERR_DESTROYED')
+        if (this.destroyed) {
+            throw errCode(
+                new Error('cannot negotiate after peer is destroyed'),
+                'ERR_DESTROYED'
+            )
+        }
 
         if (this.initiator) {
             if (this._isNegotiating) {
@@ -462,11 +475,13 @@ class Peer extends Duplex<
                 })
             }
         }
+
         this._isNegotiating = true
     }
 
     _final (cb) {
-        // @ts-expect-error types are not implemented correctly in `streamx`
+        // @ts-expect-error types are not implemented correctly in `streamx`?
+        // it should be inheriting the _readableState property
         if (!this._readableState.ended) this.push(null)
         cb(null)
     }
@@ -506,7 +521,7 @@ class Peer extends Duplex<
             if (this._channel) {
                 try {
                     this._channel.close()
-                } catch (err) {}
+                } catch (_err) {}
 
                 // allow events concurrent with destruction to be handled
                 this._channel.onmessage = null
@@ -517,7 +532,7 @@ class Peer extends Duplex<
             if (this._pc) {
                 try {
                     this._pc.close()
-                } catch (err) {}
+                } catch (_err) {}
 
                 // allow events concurrent with destruction to be handled
                 this._pc.oniceconnectionstatechange = null
@@ -535,7 +550,7 @@ class Peer extends Duplex<
         }, 0)
     }
 
-    _setupData (event) {
+    _setupData (event:{ channel:RTCDataChannel }) {
         if (!event.channel) {
             // In some situations `pc.createDataChannel()` returns `undefined` (in wrtc),
             // which is invalid behavior. Handle it gracefully.
@@ -752,20 +767,29 @@ class Peer extends Duplex<
         )
         this.emit('iceStateChange', iceConnectionState, iceGatheringState)
 
-        if (iceConnectionState === 'connected' || iceConnectionState === 'completed') {
+        if (
+            iceConnectionState === 'connected' ||
+            iceConnectionState === 'completed'
+        ) {
             this._pcReady = true
             this._maybeReady()
         }
         if (iceConnectionState === 'failed') {
-            this.__destroy(errCode(new Error('Ice connection failed.'), 'ERR_ICE_CONNECTION_FAILURE'))
+            this.__destroy(errCode(
+                new Error('Ice connection failed.'),
+                'ERR_ICE_CONNECTION_FAILURE'
+            ))
         }
         if (iceConnectionState === 'closed') {
-            this.__destroy(errCode(new Error('Ice connection closed.'), 'ERR_ICE_CONNECTION_CLOSED'))
+            this.__destroy(errCode(
+                new Error('Ice connection closed.'),
+                'ERR_ICE_CONNECTION_CLOSED')
+            )
         }
     }
 
-    getStats (cb) {
-    // statreports can come with a value array instead of properties
+    getStats (cb:(err:Error|null, reports?:any)=>any) {
+        // statreports can come with a value array instead of properties
         const flattenValues = report => {
             if (Object.prototype.toString.call(report.values) === '[object Array]') {
                 report.values.forEach(value => {
@@ -779,7 +803,7 @@ class Peer extends Duplex<
         if (this._pc?.getStats.length === 0 || this._isReactNativeWebrtc) {
             this._pc?.getStats()
                 .then(res => {
-                    const reports:any[] = []
+                    const reports:Report[] = []
                     res.forEach(report => {
                         reports.push(flattenValues(report))
                     })
@@ -848,23 +872,36 @@ class Peer extends Duplex<
                 let foundSelectedCandidatePair = false
 
                 items.forEach(item => {
-                    // TODO: Once all browsers support the hyphenated stats report types, remove
-                    // the non-hypenated ones
-                    if (item.type === 'remotecandidate' || item.type === 'remote-candidate') {
+                    // TODO: Once all browsers support the hyphenated stats
+                    // report types, remove the non-hypenated ones
+                    if (
+                        item.type === 'remotecandidate' ||
+                        item.type === 'remote-candidate'
+                    ) {
                         remoteCandidates[item.id] = item
                     }
-                    if (item.type === 'localcandidate' || item.type === 'local-candidate') {
+
+                    if (
+                        item.type === 'localcandidate' ||
+                        item.type === 'local-candidate'
+                    ) {
                         localCandidates[item.id] = item
                     }
-                    if (item.type === 'candidatepair' || item.type === 'candidate-pair') {
+
+                    if (
+                        item.type === 'candidatepair' ||
+                        item.type === 'candidate-pair'
+                    ) {
                         candidatePairs[item.id] = item
                     }
                 })
 
-                const setSelectedCandidatePair = selectedCandidatePair => {
+                const setSelectedCandidatePair = (selectedCandidatePair) => {
                     foundSelectedCandidatePair = true
 
-                    let local = localCandidates[selectedCandidatePair.localCandidateId]
+                    let local = localCandidates[
+                        selectedCandidatePair.localCandidateId
+                    ]
 
                     if (local && (local.ip || local.address)) {
                         // Spec
@@ -874,14 +911,19 @@ class Peer extends Duplex<
                         // Firefox
                         this.localAddress = local.ipAddress
                         this.localPort = Number(local.portNumber)
-                    } else if (typeof selectedCandidatePair.googLocalAddress === 'string') {
+                    } else if (
+                        typeof selectedCandidatePair.googLocalAddress === 'string'
+                    ) {
                         // TODO: remove this once Chrome 58 is released
                         local = selectedCandidatePair.googLocalAddress.split(':')
                         this.localAddress = local[0]
                         this.localPort = Number(local[1])
                     }
+
                     if (this.localAddress) {
-                        this.localFamily = this.localAddress.includes(':') ? 'IPv6' : 'IPv4'
+                        this.localFamily = (this.localAddress.includes(':') ?
+                            'IPv6' :
+                            'IPv4')
                     }
 
                     let remote = remoteCandidates[selectedCandidatePair.remoteCandidateId]
@@ -894,7 +936,9 @@ class Peer extends Duplex<
                         // Firefox
                         this.remoteAddress = remote.ipAddress
                         this.remotePort = Number(remote.portNumber)
-                    } else if (typeof selectedCandidatePair.googRemoteAddress === 'string') {
+                    } else if (
+                        typeof selectedCandidatePair.googRemoteAddress === 'string'
+                    ) {
                         // TODO: remove this once Chrome 58 is released
                         remote = selectedCandidatePair.googRemoteAddress.split(':')
                         this.remoteAddress = remote[0]
@@ -915,14 +959,28 @@ class Peer extends Duplex<
 
                 items.forEach(item => {
                     // Spec-compliant
-                    if (item.type === 'transport' && item.selectedCandidatePairId) {
-                        setSelectedCandidatePair(candidatePairs[item.selectedCandidatePairId])
+                    if (
+                        item.type === 'transport' &&
+                        item.selectedCandidatePairId
+                    ) {
+                        setSelectedCandidatePair(
+                            candidatePairs[item.selectedCandidatePairId]
+                        )
                     }
 
                     // Old implementations
                     if (
-                        (item.type === 'googCandidatePair' && item.googActiveConnection === 'true') ||
-            ((item.type === 'candidatepair' || item.type === 'candidate-pair') && item.selected)
+                        (
+                            item.type === 'googCandidatePair' &&
+                            item.googActiveConnection === 'true'
+                        ) ||
+                        (
+                            (
+                                item.type === 'candidatepair' ||
+                                item.type === 'candidate-pair'
+                            ) &&
+                            item.selected
+                        )
                     ) {
                         setSelectedCandidatePair(item)
                     }
@@ -957,7 +1015,7 @@ class Peer extends Duplex<
 
                     const cb = this._cb
                     this._cb = null
-                    cb && cb(null)
+                    if (cb) cb(null)
                 }
 
                 // If `bufferedAmountLowThreshold` and 'onbufferedamountlow'
@@ -974,17 +1032,23 @@ class Peer extends Duplex<
                 this.emit('connect')
             })
         }
+
         findCandidatePair()
     }
 
-    _onInterval () {
-        if (!this._cb || !this._channel || this._channel.bufferedAmount > MAX_BUFFERED_AMOUNT) {
+    _onInterval ():void {
+        if (
+            !this._cb ||
+            !this._channel ||
+            this._channel.bufferedAmount > MAX_BUFFERED_AMOUNT
+        ) {
             return
         }
+
         this._onChannelBufferedAmountLow()
     }
 
-    _onSignalingStateChange () {
+    _onSignalingStateChange ():void {
         if (this.destroyed) return
 
         if (this._pc?.signalingState === 'stable') {
@@ -1008,13 +1072,11 @@ class Peer extends Duplex<
             }
         }
 
-        if (!this._pc) return  // for TS
-
         this._debug('signalingStateChange %s', this._pc?.signalingState)
-        this.emit('signalingStateChange', this._pc?.signalingState)
+        this.emit('signalingStateChange', this._pc!.signalingState)
     }
 
-    _onIceCandidate (event) {
+    _onIceCandidate (event:RTCPeerConnectionIceEvent) {
         if (this.destroyed) return
         if (event.candidate && this.trickle) {
             this.emit('signal', {
@@ -1029,6 +1091,7 @@ class Peer extends Duplex<
             this._iceComplete = true
             this.emit('_iceComplete')
         }
+
         // as soon as we've received one valid candidate start timeout
         if (event.candidate) {
             this._startIceCompleteTimeout()
@@ -1038,22 +1101,26 @@ class Peer extends Duplex<
     _onChannelMessage (event) {
         if (this.destroyed) return
         let data = event.data
+
         if (data instanceof ArrayBuffer) {
             data = new Uint8Array(data)
         } else if (this.__objectMode === false) {
             data = text2arr(data)
         }
+
         this.push(data)
     }
 
     _onChannelBufferedAmountLow () {
         if (this.destroyed || !this._cb) return
+
         this._debug(
             'ending backpressure: bufferedAmount %d',
             this._channel?.bufferedAmount
         )
         const cb = this._cb
         this._cb = null
+
         cb(null)
     }
 
@@ -1073,7 +1140,7 @@ class Peer extends Duplex<
     _debug (...opts) {
         const args:string[] = [].slice.call(opts)
         args[0] = '[' + this._id + '] ' + args[0]
-        Debug.apply(null, args)
+        Debug(...args)
     }
 }
 
