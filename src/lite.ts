@@ -45,9 +45,9 @@ export type PeerOpts = DuplexOptions<any> & {
     offerOptions;
     answerOptions;
     sdpTransform;
-    trickle;
-    allowHalfTrickle;
-    iceCompleteTimeout;
+    trickle:boolean;
+    allowHalfTrickle:boolean;
+    iceCompleteTimeout:boolean;
 }
 
 const Debug = debug('simple-peer')
@@ -152,7 +152,7 @@ export class Peer extends Duplex<
     protected _closingInterval:null|ReturnType<typeof setInterval> = null
     protected _remoteTracks:any[]|null = []
     protected _remoteStreams:any[]|null = []
-    protected _chunk = null
+    protected _chunk:Uint8Array|null = null
     protected _cb:null|((err:Error|null)=>any) = null
     protected _interval:null|ReturnType<typeof setInterval> = null
 
@@ -606,7 +606,7 @@ export class Peer extends Duplex<
         }, CHANNEL_CLOSING_TIMEOUT)
     }
 
-    _write (chunk, cb) {
+    _write (chunk:Uint8Array, cb:(err:Error|null)=>any) {
         if (this.destroyed) return cb(errCode(new Error('cannot write after peer is destroyed'), 'ERR_DATA_CHANNEL'))
 
         if (this._connected) {
@@ -635,8 +635,8 @@ export class Peer extends Duplex<
         }
     }
 
-    // When stream finishes writing, close socket. Half open connections are not
-    // supported.
+    // When stream finishes writing, close socket. Half open connections are
+    // not supported.
     _onFinish () {
         if (this.destroyed) return
 
