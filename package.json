@@ -72,7 +72,7 @@
     "test": "npm run test-node && npm run test-browser",
     "test-browser": "airtap --concurrency 1 --all -- test/*.js test/browser/*.js | tap-spec",
     "test-browser-local": "airtap --preset local -- test/*.js | tap-spec",
-    "test-node": "tape test/*.js",
+    "test-node": "npm run build && tape test/*.js",
     "test-node-debug": "cross-env DEBUG=* tape test/negotiation.js",
     "prepublishOnly": "npm run build"
   },
