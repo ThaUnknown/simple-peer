@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "listFiles": true,
+    "module": "ES2022",
+    "target": "ES2022",
+    "moduleResolution": "Bundler",
+    "esModuleInterop": false,
+    "lib": ["ES2022", "DOM", "WebWorker"],
+    "types": ["streamx"],
+    "allowJs": false,
+    "skipLibCheck": true,
+    "outDir": "dist",
+    "allowSyntheticDefaultImports": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "strict": true,
+    "sourceMap": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noImplicitAny": false,
+    "declaration": true,
+    "declarationDir": "dist",
+    "declarationMap": true
+  },
+  "include": [
+    "example",
+    "src/*",
+    "test",
+    "lib.es5.d.ts"
+  ]
+}

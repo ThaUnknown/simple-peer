@@ -4,3 +4,4 @@
 img/
 perf/
 test/
+!dist

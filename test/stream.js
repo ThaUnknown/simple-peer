@@ -1,4 +1,4 @@
-import Peer from '../index.js'
+import Peer from '../dist/index.js'
 import str from 'string-to-stream'
 import test from 'tape'
 
