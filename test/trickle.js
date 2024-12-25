@@ -1,4 +1,4 @@
-import Peer from '../dist/index.js'
+import Peer from '../index.js'
 import test from 'tape'
 
 test('disable trickle', function (t) {
