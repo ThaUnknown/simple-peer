@@ -1,5 +1,5 @@
 import common from './common.js'
-import Peer from '../dist/index.js'
+import Peer from '../index.js'
 import test from 'tape'
 
 process.on('uncaughtException', console.error) // User-Initiated Abort, reason=Close called
