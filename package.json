@@ -18,10 +18,10 @@
     "url": "https://github.com/thaunknown/simple-websocket/issues"
   },
   "exports": {
-    ".": "./dist/index.js",
-    "./lite": "./dist/lite.js",
-    "./full": "./dist/full.js",
-    "./*": "./dist/*.js"
+    ".": "./index.js",
+    "./lite": "./lite.js",
+    "./full": "./full.js",
+    "./*": "./*.js"
   },
   "dependencies": {
     "debug": "^4.3.7",
