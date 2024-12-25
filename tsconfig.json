@@ -9,7 +9,7 @@
     "types": ["streamx"],
     "allowJs": false,
     "skipLibCheck": true,
-    "outDir": "dist",
+    "outDir": ".",
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
@@ -20,13 +20,11 @@
     "isolatedModules": true,
     "noImplicitAny": false,
     "declaration": true,
-    "declarationDir": "dist",
+    "declarationDir": ".",
     "declarationMap": true
   },
   "include": [
-    "example",
-    "src/*",
-    "test",
-    "lib.es5.d.ts"
+    "src/*.ts",
+    "test"
   ]
 }
