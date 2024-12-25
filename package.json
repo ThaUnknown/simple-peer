@@ -72,7 +72,7 @@
     "url": "git://github.com/thaunknown/simple-peer.git"
   },
   "scripts": {
-    "build": "mkdir -p dist && rm -rf ./dist/* && esbuild ./src/*.ts --tsconfig=tsconfig.build.json --outdir=. && tsc --emitDeclarationOnly --project tsconfig.build.json --outDir dist",
+    "build": "mkdir -p dist && rm -rf ./dist/* && esbuild ./src/*.ts --tsconfig=tsconfig.build.json --outdir=. && tsc --emitDeclarationOnly --project tsconfig.build.json --outDir .",
     "test": "npm run test-node && npm run test-browser",
     "test-browser": "airtap --concurrency 1 --all -- test/*.js test/browser/*.js | tap-spec",
     "test-browser-local": "airtap --preset local -- test/*.js | tap-spec",
