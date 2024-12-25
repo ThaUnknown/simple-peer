@@ -44,6 +44,7 @@
     "tap-spec": "^5.0.0",
     "tape": "^5.9.0",
     "thunky": "^1.1.0",
+    "typescript": "^5.7.2",
     "ws": "^8.18.0"
   },
   "keywords": [
@@ -68,7 +69,7 @@
     "url": "git://github.com/thaunknown/simple-peer.git"
   },
   "scripts": {
-    "build": "mkdir -p dist && rm -rf ./dist/* && esbuild ./src/*.ts --outdir=./dist",
+    "build": "mkdir -p dist && rm -rf ./dist/* && esbuild ./src/*.ts --outdir=./dist && tsc --emitDeclarationOnly --project tsconfig.build.json --outDir dist",
     "test": "npm run test-node && npm run test-browser",
     "test-browser": "airtap --concurrency 1 --all -- test/*.js test/browser/*.js | tap-spec",
     "test-browser-local": "airtap --preset local -- test/*.js | tap-spec",
