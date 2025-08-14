@@ -299,6 +299,7 @@ class Peer extends Duplex {
     this._debug('destroying (error: %s)', err && (err.message || err))
 
     setTimeout(() => { // allow events concurrent with the call to _destroy() to fire (see #692)
+      if (this._connected) this.emit('disconnect')
       this._connected = false
       this._pcReady = false
       this._channelReady = false
@@ -719,6 +720,7 @@ class Peer extends Duplex {
         } else {
           this._connecting = false
           this._connected = true
+          this.emit('connect')
         }
 
         if (this._chunk) {
