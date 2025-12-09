@@ -56,13 +56,37 @@
     "webrtc stream"
   ],
   "license": "MIT",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./lite": {
+      "types": "./dist/lite.d.ts",
+      "default": "./dist/lite.js"
+    },
+    "./full": {
+      "types": "./dist/full.d.ts",
+      "default": "./dist/full.js"
+    }
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "dist/**/*.js.map"
+  ],
   "repository": {
     "type": "git",
     "url": "git://github.com/thaunknown/simple-peer.git"
   },
   "scripts": {
-    "test": "npm run test-node && npm run test-browser",
+    "build": "tsc",
+    "prebuild": "rm -rf dist",
+    "prepublishOnly": "npm run build",
+    "test": "npm run build && npm run test-node && npm run test-browser",
     "test-browser": "airtap --concurrency 1 --all -- test/*.js test/browser/*.js | tap-spec",
     "test-browser-local": "airtap --preset local -- test/*.js | tap-spec",
     "test-node": "tape test/*.js",
