@@ -73,10 +73,7 @@
     }
   },
   "files": [
-    "dist/**/*.js",
-    "dist/**/*.d.ts",
-    "dist/**/*.d.ts.map",
-    "dist/**/*.js.map"
+    "dist/**/*"
   ],
   "repository": {
     "type": "git",
@@ -86,7 +83,8 @@
     "build": "tsc",
     "prebuild": "rm -rf dist",
     "prepublishOnly": "npm run build",
-    "test": "npm run build && npm run test-node && npm run test-browser",
+    "test": "npm run build && npm run test:no-build",
+    "test:no-build": "npm run test-node && npm run test-browser",
     "test-browser": "airtap --concurrency 1 --all -- test/*.js test/browser/*.js | tap-spec",
     "test-browser-local": "airtap --preset local -- test/*.js | tap-spec",
     "test-node": "tape test/*.js",
