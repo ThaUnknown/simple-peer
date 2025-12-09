@@ -18,7 +18,7 @@ dependencies:
     specifier: ^2.2.5
     version: 2.2.5
   webrtc-polyfill:
-    specifier: 1.1.10
+    specifier: ^1.1.10
     version: 1.1.10
 
 devDependencies:
@@ -28,6 +28,21 @@ devDependencies:
   '@babel/preset-env':
     specifier: ^7.26.0
     version: 7.26.0(@babel/core@7.26.0)
+  '@types/debug':
+    specifier: ^4.1.12
+    version: 4.1.12
+  '@types/node':
+    specifier: ^24.10.2
+    version: 24.10.2
+  '@types/streamx':
+    specifier: ^2.9.5
+    version: 2.9.5
+  '@types/tape':
+    specifier: ^5.8.1
+    version: 5.8.1
+  '@types/webrtc':
+    specifier: ^0.0.47
+    version: 0.0.47
   airtap:
     specifier: ^4.0.4
     version: 4.0.4
@@ -64,6 +79,9 @@ devDependencies:
   thunky:
     specifier: ^1.1.0
     version: 1.1.0
+  typescript:
+    specifier: ^5.9.3
+    version: 5.9.3
   ws:
     specifier: ^8.18.0
     version: 8.18.0
@@ -1236,13 +1254,41 @@ packages:
   /@types/cors@2.8.17:
     resolution: {integrity: sha512-8CGDvrBj1zgo2qE+oS3pOCyYNqCPryMWY2bGfwA0dcfopWGgxs+78df0Rs3rc9THP4JkOhLsAa+15VdpAqkcUA==}
     dependencies:
-      '@types/node': 22.9.0
+      '@types/node': 24.10.2
     dev: true
 
-  /@types/node@22.9.0:
-    resolution: {integrity: sha512-vuyHg81vvWA1Z1ELfvLko2c8f34gyA0zaic0+Rllc5lbCnbSyuvb2Oxpm6TAUAC/2xZN3QGqxBNggD1nNR2AfQ==}
+  /@types/debug@4.1.12:
+    resolution: {integrity: sha512-vIChWdVG3LG1SMxEvI/AK+FWJthlrqlTu7fbrlywTkkaONwk/UAGaULXRlf8vkzFBLVm0zkMdCquhL5aOjhXPQ==}
     dependencies:
-      undici-types: 6.19.8
+      '@types/ms': 2.1.0
+    dev: true
+
+  /@types/ms@2.1.0:
+    resolution: {integrity: sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==}
+    dev: true
+
+  /@types/node@24.10.2:
+    resolution: {integrity: sha512-WOhQTZ4G8xZ1tjJTvKOpyEVSGgOTvJAfDK3FNFgELyaTpzhdgHVHeqW8V+UJvzF5BT+/B54T/1S2K6gd9c7bbA==}
+    dependencies:
+      undici-types: 7.16.0
+    dev: true
+
+  /@types/streamx@2.9.5:
+    resolution: {integrity: sha512-IHYsa6jYrck8VEdSwpY141FTTf6D7boPeMq9jy4qazNrFMA4VbRz/sw5LSsfR7jwdDcx0QKWkUexZvsWBC2eIQ==}
+    dependencies:
+      '@types/node': 24.10.2
+    dev: true
+
+  /@types/tape@5.8.1:
+    resolution: {integrity: sha512-vRjK+E1c+I4WRDSXcYfgepPjz2Knh+gulU3359LrR9H2KM8AyiMbNmX7W5aMlw7JFoXMpVOhq3bEIm78qakGbQ==}
+    dependencies:
+      '@ljharb/through': 2.3.13
+      '@types/node': 24.10.2
+      mock-property: 1.1.0
+    dev: true
+
+  /@types/webrtc@0.0.47:
+    resolution: {integrity: sha512-l4G2skp32Q7ENiocokNhIHG6dKfws9ALJ04zW+ZZ97LMe6G+yqs/E8qsJLZJELGcdUDgEWvi2jg7KSP5TpJxeg==}
     dev: true
 
   /@xmldom/xmldom@0.8.10:
@@ -2528,7 +2574,7 @@ packages:
     dependencies:
       '@types/cookie': 0.4.1
       '@types/cors': 2.8.17
-      '@types/node': 22.9.0
+      '@types/node': 24.10.2
       accepts: 1.3.8
       base64id: 2.0.0
       cookie: 0.7.2
@@ -3875,11 +3921,13 @@ packages:
   /node-domexception@1.0.0:
     resolution: {integrity: sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ==}
     engines: {node: '>=10.5.0'}
+    deprecated: Use your platform's native DOMException instead
     dev: false
 
   /node-domexception@2.0.1:
     resolution: {integrity: sha512-M85rnSC7WQ7wnfQTARPT4LrK7nwCHLdDFOCcItZMhTQjyCebJH8GciKqYJNgaOFZs9nFmTmd/VMyi3OW5jA47w==}
     engines: {node: '>=16'}
+    deprecated: Use your platform's native DOMException instead
     dev: false
 
   /node-gyp-build@4.8.2:
@@ -5163,6 +5211,12 @@ packages:
     resolution: {integrity: sha512-/aCDEGatGvZ2BIk+HmLf4ifCJFwvKFNb9/JeZPMulfgFracn9QFcAf5GO8B/mweUjSoblS5In0cWhqpfs/5PQA==}
     dev: true
 
+  /typescript@5.9.3:
+    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+    dev: true
+
   /uint8-util@2.2.5:
     resolution: {integrity: sha512-/QxVQD7CttWpVUKVPz9znO+3Dd4BdTSnFQ7pv/4drVhC9m4BaL2LFHTkJn6EsYoxT79VDq/2Gg8L0H22PrzyMw==}
     dependencies:
@@ -5194,8 +5248,8 @@ packages:
       xtend: 4.0.2
     dev: true
 
-  /undici-types@6.19.8:
-    resolution: {integrity: sha512-ve2KP6f/JnbPBFyobGHuerC9g1FYGn/F8n1LWTwNxCEzd6IfqTwUQcNXgEtmmQ6DlRrC1hrSrBnCZPokRrDHjw==}
+  /undici-types@7.16.0:
+    resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
     dev: true
 
   /unicode-canonical-property-names-ecmascript@2.0.1:
