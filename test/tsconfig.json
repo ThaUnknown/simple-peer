@@ -1,0 +1,19 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../dist/test",
+    "rootDir": "..",
+    "noEmit": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": [
+    "*.ts",
+    "../index.ts",
+    "../lite.ts",
+    "../full.ts"
+  ],
+  "exclude": [
+    "../node_modules"
+  ]
+}

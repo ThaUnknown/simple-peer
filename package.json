@@ -24,6 +24,7 @@
     "@types/debug": "^4.1.12",
     "@types/node": "^24.10.2",
     "@types/streamx": "^2.9.5",
+    "@types/tape": "^5.8.1",
     "@types/webrtc": "^0.0.47",
     "airtap": "^4.0.4",
     "airtap-manual": "^1.0.0",
@@ -80,7 +81,7 @@
     "url": "git://github.com/thaunknown/simple-peer.git"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cd test && npx tsc",
     "prebuild": "rm -rf dist",
     "prepublishOnly": "npm run build",
     "test": "npm run build && npm run test:no-build",
