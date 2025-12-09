@@ -119,6 +119,7 @@ class Peer extends Duplex<Uint8Array, Uint8Array, Uint8Array, Uint8Array, true, 
   iceCompleteTimeout: number
   _destroying: boolean
   _connected: boolean
+  destroyed: boolean
   remoteAddress: string | undefined
   remoteFamily: string | undefined
   remotePort: number | undefined
@@ -871,7 +872,8 @@ class Peer extends Duplex<Uint8Array, Uint8Array, Uint8Array, Uint8Array, true, 
         // fallback to using setInterval to implement backpressure.
         if (typeof this._channel!.bufferedAmountLowThreshold !== 'number') {
           this._interval = setInterval(() => this._onInterval(), 150)
-          if ((this._interval as NodeJS.Timeout).unref) (this._interval as NodeJS.Timeout).unref()
+          const interval = this._interval as unknown as { unref?: () => void }
+          if (interval.unref) interval.unref()
         }
 
         this._debug('connect')

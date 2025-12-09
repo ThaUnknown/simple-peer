@@ -1,2 +1,2 @@
 // Re-export from TypeScript-generated dist
-export * from '../dist/test/test/z-cleanup.js'
+import '../dist/test/test/z-cleanup.js'

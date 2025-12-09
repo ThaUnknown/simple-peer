@@ -1,2 +1,2 @@
 // Re-export from TypeScript-generated dist
-export * from '../dist/test/test/stream.js'
+import '../dist/test/test/stream.js'
