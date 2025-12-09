@@ -185,3 +185,5 @@ class Peer extends Lite {
 
 export default Peer
 export { Peer }
+export type { PeerOptions, SignalData, AddressInfo, StatsReport } from './lite.js'
+
