@@ -6,7 +6,8 @@ export default defineConfig({
     environment: 'happy-dom',
     testTimeout: 20000,
     hookTimeout: 20000,
-    include: ['test/**/*.ts'],
-    exclude: ['test/**/*.js', 'node_modules/**']
+    include: ['test/**/*.ts', 'test/**/*.js'],
+    exclude: ['node_modules/**']
   }
 })
+
