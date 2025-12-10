@@ -42,7 +42,7 @@ devDependencies:
     version: 0.0.47
   '@vitest/browser':
     specifier: ^4.0.15
-    version: 4.0.15(vitest@4.0.15)
+    version: 4.0.15(vite@7.2.7)(vitest@4.0.15)
   airtap:
     specifier: ^4.0.4
     version: 4.0.4
@@ -79,6 +79,9 @@ devDependencies:
   typescript:
     specifier: ^5.9.3
     version: 5.9.3
+  vite:
+    specifier: ^7.2.7
+    version: 7.2.7(@types/node@24.10.2)
   vitest:
     specifier: ^4.0.15
     version: 4.0.15(@types/node@24.10.2)(happy-dom@20.0.11)
@@ -1715,7 +1718,7 @@ packages:
     resolution: {integrity: sha512-c2AKvDT8ToxLIOUlN51gTiHXflsfIFisS4pO7pDPoKouJCESkhZnEy623gwP9laCy5lnLDAw1vAzu2vM2YLOrA==}
     dev: true
 
-  /@vitest/browser@4.0.15(vitest@4.0.15):
+  /@vitest/browser@4.0.15(vite@7.2.7)(vitest@4.0.15):
     resolution: {integrity: sha512-zedtczX688KehaIaAv7m25CeDLb0gBtAOa2Oi1G1cqvSO5aLSVfH6lpZMJLW8BKYuWMxLQc9/5GYoM+jgvGIrw==}
     peerDependencies:
       vitest: 4.0.15
