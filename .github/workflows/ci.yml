@@ -6,8 +6,8 @@ on:
     tags-ignore:
       - '*'
   pull_request:
-    branches:
-      - master
+#    branches:
+#      - master
 concurrency: 
   group: ${{ github.ref }}
   cancel-in-progress: true

@@ -2,6 +2,8 @@ import Peer from '../index.js'
 import str from 'string-to-stream'
 import { test, expect } from 'vitest'
 
+process.on('uncaughtException', console.error) // User-Initiated Abort, reason=Close called
+
 test('duplex stream: send data one-way', { timeout: 20000 }, function () {
   return new Promise<void>((resolve) => {
     const peer1 = new Peer({ initiator: true })
