@@ -1,45 +1,41 @@
 import Peer from '../index.js'
 import str from 'string-to-stream'
-import test from 'tape'
+import { test, expect } from 'vitest'
 
-test('duplex stream: send data one-way', function (t) {
-  t.plan(9)
-  t.timeoutAfter(20000)
+test('duplex stream: send data one-way', function () {
+  return new Promise<void>((resolve) => {
+    const peer1 = new Peer({ initiator: true })
+    const peer2 = new Peer()
+    peer1.on('signal', function (data) { peer2.signal(data) })
+    peer2.on('signal', function (data) { peer1.signal(data) })
+    peer1.on('connect', tryTest)
+    peer2.on('connect', tryTest)
 
-  const peer1 = new Peer({ initiator: true })
-  const peer2 = new Peer()
-  peer1.on('signal', function (data) { peer2.signal(data) })
-  peer2.on('signal', function (data) { peer1.signal(data) })
-  peer1.on('connect', tryTest)
-  peer2.on('connect', tryTest)
+    function tryTest () {
+      if (!peer1.connected || !peer2.connected) return
 
-  function tryTest () {
-    if (!peer1.connected || !peer2.connected) return
+      peer1.on('data', function () {
+        throw new Error('peer1 should not get data')
+      })
+      peer1.on('finish', function () {
+        expect((peer1 as unknown as { _writableState: { ended: boolean } })._writableState.ended).toBe(true)
+      })
+      peer1.on('end', function () {
+        expect((peer1 as unknown as { _readableState: { ended: boolean } })._readableState.ended).toBe(true)
+      })
 
-    peer1.on('data', function () {
-      t.fail('peer1 should not get data')
-    })
-    peer1.on('finish', function () {
-      t.pass('got peer1 "finish"')
-      t.ok((peer1 as unknown as { _writableState: { ended: boolean } })._writableState.ended)
-    })
-    peer1.on('end', function () {
-      t.pass('got peer1 "end"')
-      t.ok((peer1 as unknown as { _readableState: { ended: boolean } })._readableState.ended)
-    })
+      peer2.on('data', function (chunk) {
+        expect(Buffer.from(chunk as Uint8Array).toString()).toBe('abc')
+      })
+      peer2.on('finish', function () {
+        expect((peer2 as unknown as { _writableState: { ended: boolean } })._writableState.ended).toBe(true)
+      })
+      peer2.on('end', function () {
+        expect((peer2 as unknown as { _readableState: { ended: boolean } })._readableState.ended).toBe(true)
+        resolve()
+      })
 
-    peer2.on('data', function (chunk) {
-      t.equal(Buffer.from(chunk as Uint8Array).toString(), 'abc', 'got correct message')
-    })
-    peer2.on('finish', function () {
-      t.pass('got peer2 "finish"')
-      t.ok((peer2 as unknown as { _writableState: { ended: boolean } })._writableState.ended)
-    })
-    peer2.on('end', function () {
-      t.pass('got peer2 "end"')
-      t.ok((peer2 as unknown as { _readableState: { ended: boolean } })._readableState.ended)
-    })
-
-    str('abc').pipe(peer1 as unknown as NodeJS.WritableStream)
-  }
-})
+      str('abc').pipe(peer1 as unknown as NodeJS.WritableStream)
+    }
+  })
+}, { timeout: 20000 })
