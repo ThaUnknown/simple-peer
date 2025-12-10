@@ -1,6 +1,6 @@
 import common from './common.js'
 import Peer from '../index.js'
-import { test, expect, vi } from 'vitest'
+import { test, expect } from 'vitest'
 
 test('single negotiation', function () {
   if (!process.browser) return

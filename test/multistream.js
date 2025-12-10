@@ -2,7 +2,7 @@ import common from './common.js'
 import Peer from '../index.js'
 import { test } from 'vitest'
 
-test('multistream', function (t) {
+test('multistream', function () {
   if (!process.browser) return
   if (common.isBrowser('ios')) {
     t.pass('Skip on iOS emulator which does not support this reliably') // iOS emulator issue #486
@@ -47,7 +47,7 @@ test('multistream', function (t) {
   })
 })
 
-test('multistream (track event)', function (t) {
+test('multistream (track event)', function () {
   if (!process.browser) return
   t.plan(20)
 
@@ -89,7 +89,7 @@ test('multistream (track event)', function (t) {
   })
 })
 
-test('multistream on non-initiator only', function (t) {
+test('multistream on non-initiator only', function () {
   if (!process.browser) return
   t.plan(30)
 
@@ -128,7 +128,7 @@ test('multistream on non-initiator only', function (t) {
   })
 })
 
-test('delayed stream on non-initiator', function (t) {
+test('delayed stream on non-initiator', function () {
   if (!process.browser) return
   if (common.isBrowser('ios')) {
     t.pass('Skip on iOS which does not support this reliably')
@@ -165,7 +165,7 @@ test('delayed stream on non-initiator', function (t) {
   })
 })
 
-test('incremental multistream', function (t) {
+test('incremental multistream', function () {
   if (!process.browser) return
   if (common.isBrowser('ios')) {
     t.pass('Skip on iOS emulator which does not support this reliably') // iOS emulator issue #486
@@ -230,7 +230,7 @@ test('incremental multistream', function (t) {
   })
 })
 
-test('incremental multistream (track event)', function (t) {
+test('incremental multistream (track event)', function () {
   if (!process.browser) return
   t.plan(22)
 
@@ -290,7 +290,7 @@ test('incremental multistream (track event)', function (t) {
   })
 })
 
-test('incremental multistream on non-initiator only', function (t) {
+test('incremental multistream on non-initiator only', function () {
   if (!process.browser) return
   if (common.isBrowser('ios')) {
     t.pass('Skip on iOS emulator which does not support this reliably') // iOS emulator issue #486
@@ -340,7 +340,7 @@ test('incremental multistream on non-initiator only', function (t) {
   })
 })
 
-test('incremental multistream on non-initiator only (track event)', function (t) {
+test('incremental multistream on non-initiator only (track event)', function () {
   if (!process.browser) return
   t.plan(12)
 
@@ -385,7 +385,7 @@ test('incremental multistream on non-initiator only (track event)', function (t)
   })
 })
 
-test('addStream after removeStream', function (t) {
+test('addStream after removeStream', function () {
   if (!process.browser) return
   if (common.isBrowser('ios')) {
     t.pass('Skip on iOS which does not support this reliably')
@@ -420,7 +420,7 @@ test('addStream after removeStream', function (t) {
   })
 })
 
-test('removeTrack immediately', function (t) {
+test('removeTrack immediately', function () {
   if (!process.browser) return
   t.plan(2)
 
@@ -459,7 +459,7 @@ test('removeTrack immediately', function (t) {
   })
 })
 
-test('replaceTrack', function (t) {
+test('replaceTrack', function () {
   if (!process.browser) return
   t.plan(4)
 

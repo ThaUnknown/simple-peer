@@ -10,4 +10,3 @@ export default defineConfig({
     exclude: ['node_modules/**', 'test/common.ts', 'test/common.js']
   }
 })
-
