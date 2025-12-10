@@ -6,8 +6,8 @@ on:
     tags-ignore:
       - '*'
   pull_request:
-    branches:
-      - master
+#    branches:
+#      - master
 concurrency: 
   group: ${{ github.ref }}
   cancel-in-progress: true
@@ -32,7 +32,7 @@ jobs:
       - name: Setup PNPM
         uses: pnpm/action-setup@v4
         with:
-          version: 8.6.3
+          version: 8.8.0
 
       - name: Setup Node
         uses: actions/setup-node@v3
