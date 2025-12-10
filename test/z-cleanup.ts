@@ -4,8 +4,5 @@
 import { test } from 'vitest'
 
 test('cleanup', function () {
-  // Shut down the process and any daemons
-  if (process && process.exit) {
-    process.exit(0)
-  }
+  // Cleanup complete - all tests done
 })

@@ -2,7 +2,7 @@ import Peer from '../index.js'
 import str from 'string-to-stream'
 import { test, expect } from 'vitest'
 
-test('duplex stream: send data one-way', function () {
+test('duplex stream: send data one-way', { timeout: 20000 }, function () {
   return new Promise<void>((resolve) => {
     const peer1 = new Peer({ initiator: true })
     const peer2 = new Peer()
@@ -38,4 +38,4 @@ test('duplex stream: send data one-way', function () {
       str('abc').pipe(peer1 as unknown as NodeJS.WritableStream)
     }
   })
-}, { timeout: 20000 })
+})

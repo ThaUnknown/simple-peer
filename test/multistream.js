@@ -1,14 +1,15 @@
 import common from './common.js'
 import Peer from '../index.js'
-import { test, expect } from 'vitest'
+import { test } from 'vitest'
 
 test('multistream', function (t) {
   if (!process.browser) return
   if (common.isBrowser('ios')) {
-    //  // iOS emulator issue #486
+    t.pass('Skip on iOS emulator which does not support this reliably') // iOS emulator issue #486
     t.end()
     return
   }
+  t.plan(20)
 
   const peer1 = new Peer({
     initiator: true,
@@ -24,30 +25,31 @@ test('multistream', function (t) {
   const receivedIds = {}
 
   peer1.on('stream', function (stream) {
-    // 
+    t.pass('peer1 got stream')
     if (receivedIds[stream.id]) {
-      throw new Error('')
+      t.fail('received one unique stream per event')
     } else {
       receivedIds[stream.id] = true
     }
   })
   peer2.on('stream', function (stream) {
-    // 
+    t.pass('peer2 got stream')
     if (receivedIds[stream.id]) {
-      throw new Error('')
+      t.fail('received one unique stream per event')
     } else {
       receivedIds[stream.id] = true
     }
   })
 
-  // cleanup: 
+  t.on('end', () => {
     peer1.destroy()
     peer2.destroy()
-  
+  })
 })
 
 test('multistream (track event)', function (t) {
   if (!process.browser) return
+  t.plan(20)
 
   const peer1 = new Peer({
     initiator: true,
@@ -65,30 +67,31 @@ test('multistream (track event)', function (t) {
   const receivedIds = {}
 
   peer1.on('track', function (track) {
-    // 
+    t.pass('peer1 got track')
     if (receivedIds[track.id]) {
-      throw new Error('')
+      t.fail('received one unique track per event')
     } else {
       receivedIds[track.id] = true
     }
   })
   peer2.on('track', function (track) {
-    // 
+    t.pass('peer2 got track')
     if (receivedIds[track.id]) {
-      throw new Error('')
+      t.fail('received one unique track per event')
     } else {
       receivedIds[track.id] = true
     }
   })
 
-  // cleanup: 
+  t.on('end', () => {
     peer1.destroy()
     peer2.destroy()
-  
+  })
 })
 
 test('multistream on non-initiator only', function (t) {
   if (!process.browser) return
+  t.plan(30)
 
   const peer1 = new Peer({
     initiator: true,
@@ -100,39 +103,40 @@ test('multistream on non-initiator only', function (t) {
   })
 
   peer1.on('signal', function (data) {
-    if (data.transceiverRequest) // 
+    if (data.transceiverRequest) t.pass('got transceiverRequest')
     if (!peer2.destroyed) peer2.signal(data)
   })
   peer2.on('signal', function (data) {
-    if (data.transceiverRequest) // 
+    if (data.transceiverRequest) t.pass('got transceiverRequest')
     if (!peer1.destroyed) peer1.signal(data)
   })
 
   const receivedIds = {}
 
   peer1.on('stream', function (stream) {
-    // 
+    t.pass('peer1 got stream')
     if (receivedIds[stream.id]) {
-      throw new Error('')
+      t.fail('received one unique stream per event')
     } else {
       receivedIds[stream.id] = true
     }
   })
 
-  // cleanup: 
+  t.on('end', () => {
     peer1.destroy()
     peer2.destroy()
-  
+  })
 })
 
 test('delayed stream on non-initiator', function (t) {
   if (!process.browser) return
   if (common.isBrowser('ios')) {
-    // 
+    t.pass('Skip on iOS which does not support this reliably')
     t.end()
     return
   }
   t.timeoutAfter(15000)
+  t.plan(1)
 
   const peer1 = new Peer({
     trickle: true,
@@ -152,22 +156,23 @@ test('delayed stream on non-initiator', function (t) {
     peer2.addStream(common.getMediaStream())
   }, 10000)
   peer1.on('stream', function () {
-    // 
+    t.pass('peer1 got stream')
   })
 
-  // cleanup: 
+  t.on('end', () => {
     peer1.destroy()
     peer2.destroy()
-  
+  })
 })
 
 test('incremental multistream', function (t) {
   if (!process.browser) return
   if (common.isBrowser('ios')) {
-    //  // iOS emulator issue #486
+    t.pass('Skip on iOS emulator which does not support this reliably') // iOS emulator issue #486
     t.end()
     return
   }
+  t.plan(12)
 
   const peer1 = new Peer({
     initiator: true,
@@ -181,11 +186,11 @@ test('incremental multistream', function (t) {
   peer2.on('signal', function (data) { if (!peer1.destroyed) peer1.signal(data) })
 
   peer1.on('connect', function () {
-    // 
+    t.pass('peer1 connected')
     peer1.addStream(common.getMediaStream())
   })
   peer2.on('connect', function () {
-    // 
+    t.pass('peer2 connected')
     peer2.addStream(common.getMediaStream())
   })
 
@@ -193,9 +198,9 @@ test('incremental multistream', function (t) {
 
   let count1 = 0
   peer1.on('stream', function (stream) {
-    // 
+    t.pass('peer1 got stream')
     if (receivedIds[stream.id]) {
-      throw new Error('')
+      t.fail('received one unique stream per event')
     } else {
       receivedIds[stream.id] = true
     }
@@ -207,9 +212,9 @@ test('incremental multistream', function (t) {
 
   let count2 = 0
   peer2.on('stream', function (stream) {
-    // 
+    t.pass('peer2 got stream')
     if (receivedIds[stream.id]) {
-      throw new Error('')
+      t.fail('received one unique stream per event')
     } else {
       receivedIds[stream.id] = true
     }
@@ -219,14 +224,15 @@ test('incremental multistream', function (t) {
     }
   })
 
-  // cleanup: 
+  t.on('end', () => {
     peer1.destroy()
     peer2.destroy()
-  
+  })
 })
 
 test('incremental multistream (track event)', function (t) {
   if (!process.browser) return
+  t.plan(22)
 
   const peer1 = new Peer({
     initiator: true,
@@ -240,11 +246,11 @@ test('incremental multistream (track event)', function (t) {
   peer2.on('signal', function (data) { if (!peer1.destroyed) peer1.signal(data) })
 
   peer1.on('connect', function () {
-    // 
+    t.pass('peer1 connected')
     peer1.addStream(common.getMediaStream())
   })
   peer2.on('connect', function () {
-    // 
+    t.pass('peer2 connected')
     peer2.addStream(common.getMediaStream())
   })
 
@@ -252,9 +258,9 @@ test('incremental multistream (track event)', function (t) {
 
   let count1 = 0
   peer1.on('track', function (track) {
-    // 
+    t.pass('peer1 got track')
     if (receivedIds[track.id]) {
-      throw new Error('')
+      t.fail('received one unique track per event')
     } else {
       receivedIds[track.id] = true
     }
@@ -266,9 +272,9 @@ test('incremental multistream (track event)', function (t) {
 
   let count2 = 0
   peer2.on('track', function (track) {
-    // 
+    t.pass('peer2 got track')
     if (receivedIds[track.id]) {
-      throw new Error('')
+      t.fail('received one unique track per event')
     } else {
       receivedIds[track.id] = true
     }
@@ -278,19 +284,20 @@ test('incremental multistream (track event)', function (t) {
     }
   })
 
-  // cleanup: 
+  t.on('end', () => {
     peer1.destroy()
     peer2.destroy()
-  
+  })
 })
 
 test('incremental multistream on non-initiator only', function (t) {
   if (!process.browser) return
   if (common.isBrowser('ios')) {
-    //  // iOS emulator issue #486
+    t.pass('Skip on iOS emulator which does not support this reliably') // iOS emulator issue #486
     t.end()
     return
   }
+  t.plan(7)
 
   const peer1 = new Peer({
     initiator: true,
@@ -304,10 +311,10 @@ test('incremental multistream on non-initiator only', function (t) {
   peer2.on('signal', function (data) { if (!peer1.destroyed) peer1.signal(data) })
 
   peer1.on('connect', function () {
-    // 
+    t.pass('peer1 connected')
   })
   peer2.on('connect', function () {
-    // 
+    t.pass('peer2 connected')
     peer2.addStream(common.getMediaStream())
   })
 
@@ -315,9 +322,9 @@ test('incremental multistream on non-initiator only', function (t) {
 
   let count = 0
   peer1.on('stream', function (stream) {
-    // 
+    t.pass('peer1 got stream')
     if (receivedIds[stream.id]) {
-      throw new Error('')
+      t.fail('received one unique stream per event')
     } else {
       receivedIds[stream.id] = true
     }
@@ -327,14 +334,15 @@ test('incremental multistream on non-initiator only', function (t) {
     }
   })
 
-  // cleanup: 
+  t.on('end', () => {
     peer1.destroy()
     peer2.destroy()
-  
+  })
 })
 
 test('incremental multistream on non-initiator only (track event)', function (t) {
   if (!process.browser) return
+  t.plan(12)
 
   const peer1 = new Peer({
     initiator: true,
@@ -348,10 +356,10 @@ test('incremental multistream on non-initiator only (track event)', function (t)
   peer2.on('signal', function (data) { if (!peer1.destroyed) peer1.signal(data) })
 
   peer1.on('connect', function () {
-    // 
+    t.pass('peer1 connected')
   })
   peer2.on('connect', function () {
-    // 
+    t.pass('peer2 connected')
     peer2.addStream(common.getMediaStream())
   })
 
@@ -359,9 +367,9 @@ test('incremental multistream on non-initiator only (track event)', function (t)
 
   let count = 0
   peer1.on('track', function (track) {
-    // 
+    t.pass('peer1 got track')
     if (receivedIds[track.id]) {
-      throw new Error('')
+      t.fail('received one unique track per event')
     } else {
       receivedIds[track.id] = true
     }
@@ -371,19 +379,20 @@ test('incremental multistream on non-initiator only (track event)', function (t)
     }
   })
 
-  // cleanup: 
+  t.on('end', () => {
     peer1.destroy()
     peer2.destroy()
-  
+  })
 })
 
 test('addStream after removeStream', function (t) {
   if (!process.browser) return
   if (common.isBrowser('ios')) {
-    // 
+    t.pass('Skip on iOS which does not support this reliably')
     t.end()
     return
   }
+  t.plan(2)
 
   const stream1 = common.getMediaStream()
   const stream2 = common.getMediaStream()
@@ -395,24 +404,25 @@ test('addStream after removeStream', function (t) {
   peer2.on('signal', function (data) { if (!peer1.destroyed) peer1.signal(data) })
 
   peer1.once('stream', () => {
-    // 
+    t.pass('peer1 got first stream')
     peer2.removeStream(stream1)
     setTimeout(() => {
       peer1.once('stream', () => {
-        // 
+        t.pass('peer1 got second stream')
       })
       peer2.addStream(stream2)
     }, 1000)
   })
 
-  // cleanup: 
+  t.on('end', () => {
     peer1.destroy()
     peer2.destroy()
-  
+  })
 })
 
 test('removeTrack immediately', function (t) {
   if (!process.browser) return
+  t.plan(2)
 
   const peer1 = new Peer({ initiator: true })
   const peer2 = new Peer({ })
@@ -430,27 +440,28 @@ test('removeTrack immediately', function (t) {
   peer2.removeTrack(stream2.getTracks()[0], stream2)
 
   peer1.on('track', function (track, stream) {
-    throw new Error('')
+    t.fail('peer1 did not get track event')
   })
   peer2.on('track', function (track, stream) {
-    throw new Error('')
+    t.fail('peer2 did not get track event')
   })
 
   peer1.on('connect', function () {
-    // 
+    t.pass('peer1 connected')
   })
   peer2.on('connect', function () {
-    // 
+    t.pass('peer2 connected')
   })
 
-  // cleanup: 
+  t.on('end', () => {
     peer1.destroy()
     peer2.destroy()
-  
+  })
 })
 
 test('replaceTrack', function (t) {
   if (!process.browser) return
+  t.plan(4)
 
   const peer1 = new Peer({ initiator: true })
   const peer2 = new Peer({ })
@@ -468,23 +479,23 @@ test('replaceTrack', function (t) {
   peer2.replaceTrack(stream2.getTracks()[0], stream1.getTracks()[0], stream2)
 
   peer1.on('track', function (track, stream) {
-    // 
+    t.pass('peer1 got track event')
     peer2.replaceTrack(stream2.getTracks()[0], null, stream2)
   })
   peer2.on('track', function (track, stream) {
-    // 
+    t.pass('peer2 got track event')
     peer1.replaceTrack(stream1.getTracks()[0], null, stream1)
   })
 
   peer1.on('connect', function () {
-    // 
+    t.pass('peer1 connected')
   })
   peer2.on('connect', function () {
-    // 
+    t.pass('peer2 connected')
   })
 
-  // cleanup: 
+  t.on('end', () => {
     peer1.destroy()
     peer2.destroy()
-  
+  })
 })
