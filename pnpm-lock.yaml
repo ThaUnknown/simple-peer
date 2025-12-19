@@ -5,6 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 dependencies:
+  '@types/streamx':
+    specifier: ^2.9.5
+    version: 2.9.5
   debug:
     specifier: ^4.3.7
     version: 4.3.7
@@ -31,9 +34,6 @@ devDependencies:
   '@types/node':
     specifier: ^24.10.2
     version: 24.10.2
-  '@types/streamx':
-    specifier: ^2.9.5
-    version: 2.9.5
   '@types/webrtc':
     specifier: ^0.0.47
     version: 0.0.47
@@ -562,13 +562,12 @@ packages:
     resolution: {integrity: sha512-WOhQTZ4G8xZ1tjJTvKOpyEVSGgOTvJAfDK3FNFgELyaTpzhdgHVHeqW8V+UJvzF5BT+/B54T/1S2K6gd9c7bbA==}
     dependencies:
       undici-types: 7.16.0
-    dev: true
 
   /@types/streamx@2.9.5:
     resolution: {integrity: sha512-IHYsa6jYrck8VEdSwpY141FTTf6D7boPeMq9jy4qazNrFMA4VbRz/sw5LSsfR7jwdDcx0QKWkUexZvsWBC2eIQ==}
     dependencies:
       '@types/node': 24.10.2
-    dev: true
+    dev: false
 
   /@types/webrtc@0.0.47:
     resolution: {integrity: sha512-l4G2skp32Q7ENiocokNhIHG6dKfws9ALJ04zW+ZZ97LMe6G+yqs/E8qsJLZJELGcdUDgEWvi2jg7KSP5TpJxeg==}
@@ -1444,7 +1443,6 @@ packages:
 
   /undici-types@7.16.0:
     resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
-    dev: true
 
   /util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}

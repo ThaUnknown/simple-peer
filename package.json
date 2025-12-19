@@ -15,6 +15,7 @@
     "debug": "^4.3.7",
     "err-code": "^3.0.1",
     "streamx": "^2.20.1",
+    "@types/streamx": "^2.9.5",
     "uint8-util": "^2.2.5",
     "webrtc-polyfill": "^1.1.10"
   },
@@ -22,7 +23,6 @@
     "@playwright/test": "^1.57.0",
     "@types/debug": "^4.1.12",
     "@types/node": "^24.10.2",
-    "@types/streamx": "^2.9.5",
     "@types/webrtc": "^0.0.47",
     "@vitest/browser": "^4.0.15",
     "@vitest/browser-playwright": "^4.0.15",
