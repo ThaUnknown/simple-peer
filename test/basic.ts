@@ -2,8 +2,6 @@ import common from './common.js'
 import Peer from '../index.js'
 import { test, expect } from 'vitest'
 
-process.on('uncaughtException', console.error) // User-Initiated Abort, reason=Close called
-
 test('detect WebRTC support', function () {
   expect(Peer.WEBRTC_SUPPORT).toBe(true)
 })
