@@ -6,8 +6,8 @@ on:
     tags-ignore:
       - '*'
   pull_request:
-    branches:
-      - master
+#    branches:
+#      - master
 concurrency: 
   group: ${{ github.ref }}
   cancel-in-progress: true
@@ -21,7 +21,7 @@ jobs:
         os:
           - ubuntu-latest
         node:
-          - '18'
+          - '20'
     steps:
       - name: Install Setuptools for Python
         run: pip3 install setuptools
@@ -30,9 +30,9 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Setup PNPM
-        uses: pnpm/action-setup@v2.2.2
+        uses: pnpm/action-setup@v4
         with:
-          version: 8.6.3
+          version: 8.8.0
 
       - name: Setup Node
         uses: actions/setup-node@v3
@@ -41,8 +41,12 @@ jobs:
           cache: 'pnpm'
 
       - run: pnpm install --frozen-lockfile
-      - run: echo "127.0.0.1 airtap.local" | sudo tee -a /etc/hosts
-      - run: pnpm test
-        env:
-          SAUCE_USERNAME: ${{ secrets.SAUCE_USERNAME }}
-          SAUCE_ACCESS_KEY: ${{ secrets.SAUCE_ACCESS_KEY }}
+      
+      - name: Run Node.js tests
+        run: pnpm test
+
+      - name: Install Playwright Browsers
+        run: pnpm exec playwright install --with-deps chromium firefox webkit
+
+      - name: Run Playwright Browser Tests
+        run: pnpm run test-browser-chromium

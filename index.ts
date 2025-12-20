@@ -1,14 +1,17 @@
 /*! simple-peer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> */
-import Lite from './lite.js'
+import Lite, { PeerOptions } from './lite.js'
 import errCode from 'err-code'
+import { MediaStream, MediaStreamTrack, RTCRtpSender, RTCRtpTransceiver } from 'webrtc-polyfill'
 
 /**
  * WebRTC peer connection. Same API as node core `net.Socket`, plus a few extra methods.
  * Duplex stream.
- * @param {Object} opts
  */
 class Peer extends Lite {
-  constructor (opts = {}) {
+  streams: MediaStream[]
+  _senderMap: Map<MediaStreamTrack, Map<MediaStream, RTCRtpSender>>
+
+  constructor (opts: PeerOptions = {}) {
     super(opts)
     if (!this._pc) return
 
@@ -20,27 +23,25 @@ class Peer extends Lite {
         this.addStream(stream)
       })
     }
-    this._pc.ontrack = event => {
+    this._pc.ontrack = (event: RTCTrackEvent) => {
       this._onTrack(event)
     }
   }
 
   /**
    * Add a Transceiver to the connection.
-   * @param {String} kind
-   * @param {Object=} init
    */
-  addTransceiver (kind, init) {
+  addTransceiver (kind: string, init?: Record<string, unknown>): void {
     if (this._destroying) return
     if (this.destroyed) throw errCode(new Error('cannot addTransceiver after peer is destroyed'), 'ERR_DESTROYED')
     this._debug('addTransceiver()')
 
     if (this.initiator) {
       try {
-        this._pc.addTransceiver(kind, init)
+        this._pc!.addTransceiver(kind, init as RTCRtpTransceiverInit)
         this._needsNegotiation()
       } catch (err) {
-        this.__destroy(errCode(err, 'ERR_ADD_TRANSCEIVER'))
+        this.__destroy(errCode(err as Error, 'ERR_ADD_TRANSCEIVER'))
       }
     } else {
       this.emit('signal', { // request initiator to renegotiate
@@ -52,9 +53,8 @@ class Peer extends Lite {
 
   /**
    * Add a MediaStream to the connection.
-   * @param {MediaStream} stream
    */
-  addStream (stream) {
+  addStream (stream: MediaStream): void {
     if (this._destroying) return
     if (this.destroyed) throw errCode(new Error('cannot addStream after peer is destroyed'), 'ERR_DESTROYED')
     this._debug('addStream()')
@@ -66,10 +66,8 @@ class Peer extends Lite {
 
   /**
    * Add a MediaStreamTrack to the connection.
-   * @param {MediaStreamTrack} track
-   * @param {MediaStream} stream
    */
-  addTrack (track, stream) {
+  addTrack (track: MediaStreamTrack, stream: MediaStream): void {
     if (this._destroying) return
     if (this.destroyed) throw errCode(new Error('cannot addTrack after peer is destroyed'), 'ERR_DESTROYED')
     this._debug('addTrack()')
@@ -77,11 +75,11 @@ class Peer extends Lite {
     const submap = this._senderMap.get(track) || new Map() // nested Maps map [track, stream] to sender
     let sender = submap.get(stream)
     if (!sender) {
-      sender = this._pc.addTrack(track, stream)
+      sender = this._pc!.addTrack(track, stream)
       submap.set(stream, sender)
       this._senderMap.set(track, submap)
       this._needsNegotiation()
-    } else if (sender.removed) {
+    } else if ((sender as RTCRtpSender & { removed?: boolean }).removed) {
       throw errCode(new Error('Track has been removed. You should enable/disable tracks that you want to re-add.'), 'ERR_SENDER_REMOVED')
     } else {
       throw errCode(new Error('Track has already been added to that stream.'), 'ERR_SENDER_ALREADY_ADDED')
@@ -90,11 +88,8 @@ class Peer extends Lite {
 
   /**
    * Replace a MediaStreamTrack by another in the connection.
-   * @param {MediaStreamTrack} oldTrack
-   * @param {MediaStreamTrack} newTrack
-   * @param {MediaStream} stream
    */
-  replaceTrack (oldTrack, newTrack, stream) {
+  replaceTrack (oldTrack: MediaStreamTrack, newTrack: MediaStreamTrack, stream: MediaStream): void {
     if (this._destroying) return
     if (this.destroyed) throw errCode(new Error('cannot replaceTrack after peer is destroyed'), 'ERR_DESTROYED')
     this._debug('replaceTrack()')
@@ -104,7 +99,7 @@ class Peer extends Lite {
     if (!sender) {
       throw errCode(new Error('Cannot replace track that was never added.'), 'ERR_TRACK_NOT_ADDED')
     }
-    if (newTrack) this._senderMap.set(newTrack, submap)
+    if (newTrack) this._senderMap.set(newTrack, submap!)
 
     if (sender.replaceTrack != null) {
       sender.replaceTrack(newTrack)
@@ -115,10 +110,8 @@ class Peer extends Lite {
 
   /**
    * Remove a MediaStreamTrack from the connection.
-   * @param {MediaStreamTrack} track
-   * @param {MediaStream} stream
    */
-  removeTrack (track, stream) {
+  removeTrack (track: MediaStreamTrack, stream: MediaStream): void {
     if (this._destroying) return
     if (this.destroyed) throw errCode(new Error('cannot removeTrack after peer is destroyed'), 'ERR_DESTROYED')
     this._debug('removeSender()')
@@ -129,13 +122,13 @@ class Peer extends Lite {
       throw errCode(new Error('Cannot remove track that was never added.'), 'ERR_TRACK_NOT_ADDED')
     }
     try {
-      sender.removed = true
-      this._pc.removeTrack(sender)
+      (sender as RTCRtpSender & { removed?: boolean }).removed = true
+      this._pc!.removeTrack(sender)
     } catch (err) {
-      if (err.name === 'NS_ERROR_UNEXPECTED') {
+      if ((err as Error).name === 'NS_ERROR_UNEXPECTED') {
         this._sendersAwaitingStable.push(sender) // HACK: Firefox must wait until (signalingState === stable) https://bugzilla.mozilla.org/show_bug.cgi?id=1133874
       } else {
-        this.__destroy(errCode(err, 'ERR_REMOVE_TRACK'))
+        this.__destroy(errCode(err as Error, 'ERR_REMOVE_TRACK'))
       }
     }
     this._needsNegotiation()
@@ -143,9 +136,8 @@ class Peer extends Lite {
 
   /**
    * Remove a MediaStream from the connection.
-   * @param {MediaStream} stream
    */
-  removeStream (stream) {
+  removeStream (stream: MediaStream): void {
     if (this._destroying) return
     if (this.destroyed) throw errCode(new Error('cannot removeStream after peer is destroyed'), 'ERR_DESTROYED')
     this._debug('removeSenders()')
@@ -155,34 +147,34 @@ class Peer extends Lite {
     })
   }
 
-  _requestMissingTransceivers () {
-    if (this._pc.getTransceivers) {
-      this._pc.getTransceivers().forEach(transceiver => {
-        if (!transceiver.mid && transceiver.sender.track && !transceiver.requested) {
-          transceiver.requested = true // HACK: Safari returns negotiated transceivers with a null mid
+  _requestMissingTransceivers (): void {
+    if (this._pc!.getTransceivers()) {
+      this._pc!.getTransceivers().forEach((transceiver: RTCRtpTransceiver) => {
+        if (!transceiver.mid && transceiver.sender.track && !(transceiver as RTCRtpTransceiver & { requested?: boolean }).requested) {
+          (transceiver as RTCRtpTransceiver & { requested?: boolean }).requested = true // HACK: Safari returns negotiated transceivers with a null mid
           this.addTransceiver(transceiver.sender.track.kind)
         }
       })
     }
   }
 
-  _onTrack (event) {
+  _onTrack (event: RTCTrackEvent): void {
     if (this.destroyed) return
 
     event.streams.forEach(eventStream => {
       this._debug('on track')
       this.emit('track', event.track, eventStream)
 
-      this._remoteTracks.push({
+      this._remoteTracks!.push({
         track: event.track,
         stream: eventStream
       })
 
-      if (this._remoteStreams.some(remoteStream => {
+      if (this._remoteStreams!.some(remoteStream => {
         return remoteStream.id === eventStream.id
       })) return // Only fire one 'stream' event, even though there may be multiple tracks per stream
 
-      this._remoteStreams.push(eventStream)
+      this._remoteStreams!.push(eventStream)
       queueMicrotask(() => {
         this._debug('on stream')
         this.emit('stream', eventStream) // ensure all tracks have been added
@@ -192,3 +184,6 @@ class Peer extends Lite {
 }
 
 export default Peer
+export { Peer }
+export type { PeerOptions, SignalData, AddressInfo, StatsReport } from './lite.js'
+

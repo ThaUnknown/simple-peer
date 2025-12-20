@@ -15,24 +15,33 @@
     "debug": "^4.3.7",
     "err-code": "^3.0.1",
     "streamx": "^2.20.1",
+    "@types/streamx": "^2.9.5",
     "uint8-util": "^2.2.5",
     "webrtc-polyfill": "^1.1.10"
   },
   "devDependencies": {
-    "@babel/core": "^7.26.0",
-    "@babel/preset-env": "^7.26.0",
-    "airtap": "^4.0.4",
-    "airtap-manual": "^1.0.0",
-    "airtap-system": "^0.1.0",
-    "babelify": "^10.0.0",
+    "@playwright/test": "^1.57.0",
+    "@types/debug": "^4.1.12",
+    "@types/node": "^24.10.2",
+    "@types/webrtc": "^0.0.47",
+    "@vitest/browser": "^4.0.15",
+    "@vitest/browser-playwright": "^4.0.15",
     "bowser": "^2.11.0",
+    "buffer": "^6.0.3",
     "cross-env": "^7.0.3",
+    "events": "^3.3.0",
+    "happy-dom": "^20.0.11",
+    "playwright": "^1.57.0",
     "prettier-bytes": "^1.0.4",
+    "process": "^0.11.10",
     "speedometer": "^1.1.0",
+    "stream-browserify": "^3.0.0",
     "string-to-stream": "^3.0.1",
-    "tap-spec": "^5.0.0",
-    "tape": "^5.9.0",
     "thunky": "^1.1.0",
+    "typescript": "^5.9.3",
+    "util": "^0.12.5",
+    "vite": "^7.2.7",
+    "vitest": "^4.0.15",
     "ws": "^8.18.0"
   },
   "keywords": [
@@ -51,17 +60,42 @@
     "webrtc stream"
   ],
   "license": "MIT",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./lite": {
+      "types": "./dist/lite.d.ts",
+      "default": "./dist/lite.js"
+    },
+    "./full": {
+      "types": "./dist/full.d.ts",
+      "default": "./dist/full.js"
+    }
+  },
+  "files": [
+    "dist/**/*"
+  ],
   "repository": {
     "type": "git",
     "url": "git://github.com/thaunknown/simple-peer.git"
   },
   "scripts": {
-    "test": "npm run test-node && npm run test-browser",
-    "test-browser": "airtap --concurrency 1 --all -- test/*.js test/browser/*.js | tap-spec",
-    "test-browser-local": "airtap --preset local -- test/*.js | tap-spec",
-    "test-node": "tape test/*.js",
-    "test-node-debug": "cross-env DEBUG=* tape test/negotiation.js"
+    "build": "tsc",
+    "prebuild": "rm -rf dist",
+    "prepublishOnly": "npm run build",
+    "test": "npm run build && vitest run",
+    "test:watch": "vitest",
+    "test-node": "vitest run",
+    "test-browser": "npm run build && vitest run --config vitest.browser.config.ts",
+    "test-browser-local": "npm run build && vitest --config vitest.browser.config.ts",
+    "test-browser-all": "npm run test-browser-chromium && npm run test-browser-firefox && npm run test-browser-webkit",
+    "test-browser-chromium": "npm run build && vitest run --config vitest.browser.config.ts --browser.name=chromium --browser.headless",
+    "test-browser-firefox": "npm run build && vitest run --config vitest.browser.config.ts --browser.name=firefox --browser.headless",
+    "test-browser-webkit": "npm run build && vitest run --config vitest.browser.config.ts --browser.name=webkit --browser.headless"
   },
   "contributors": [
     {
