@@ -9,7 +9,7 @@ import { MediaStream, MediaStreamTrack, RTCRtpSender, RTCRtpTransceiver } from '
  */
 class Peer extends Lite {
   streams: MediaStream[]
-  _senderMap: Map<MediaStreamTrack, Map<MediaStream, RTCRtpSender>> | null
+  _senderMap: Map<MediaStreamTrack, Map<MediaStream, RTCRtpSender>>
 
   constructor (opts: PeerOptions = {}) {
     super(opts)
@@ -72,12 +72,12 @@ class Peer extends Lite {
     if (this.destroyed) throw errCode(new Error('cannot addTrack after peer is destroyed'), 'ERR_DESTROYED')
     this._debug('addTrack()')
 
-    const submap = this._senderMap!.get(track) || new Map() // nested Maps map [track, stream] to sender
+    const submap = this._senderMap.get(track) || new Map() // nested Maps map [track, stream] to sender
     let sender = submap.get(stream)
     if (!sender) {
       sender = this._pc!.addTrack(track, stream)
       submap.set(stream, sender)
-      this._senderMap!.set(track, submap)
+      this._senderMap.set(track, submap)
       this._needsNegotiation()
     } else if ((sender as RTCRtpSender & { removed?: boolean }).removed) {
       throw errCode(new Error('Track has been removed. You should enable/disable tracks that you want to re-add.'), 'ERR_SENDER_REMOVED')
@@ -94,12 +94,12 @@ class Peer extends Lite {
     if (this.destroyed) throw errCode(new Error('cannot replaceTrack after peer is destroyed'), 'ERR_DESTROYED')
     this._debug('replaceTrack()')
 
-    const submap = this._senderMap!.get(oldTrack)
+    const submap = this._senderMap.get(oldTrack)
     const sender = submap ? submap.get(stream) : null
     if (!sender) {
       throw errCode(new Error('Cannot replace track that was never added.'), 'ERR_TRACK_NOT_ADDED')
     }
-    if (newTrack) this._senderMap!.set(newTrack, submap!)
+    if (newTrack) this._senderMap.set(newTrack, submap!)
 
     if (sender.replaceTrack != null) {
       sender.replaceTrack(newTrack)
@@ -116,7 +116,7 @@ class Peer extends Lite {
     if (this.destroyed) throw errCode(new Error('cannot removeTrack after peer is destroyed'), 'ERR_DESTROYED')
     this._debug('removeSender()')
 
-    const submap = this._senderMap!.get(track)
+    const submap = this._senderMap.get(track)
     const sender = submap ? submap.get(stream) : null
     if (!sender) {
       throw errCode(new Error('Cannot remove track that was never added.'), 'ERR_TRACK_NOT_ADDED')
