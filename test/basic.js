@@ -1,6 +1,9 @@
 import common from './common.js'
 import Peer from '../index.js'
 import test from 'tape'
+// import ndc from 'node-datachannel'
+
+// ndc.initLogger('Debug')
 
 process.on('uncaughtException', console.error) // User-Initiated Abort, reason=Close called
 

@@ -1,7 +1,7 @@
 {
   "name": "@thaunknown/simple-peer",
   "description": "Simple one-to-one WebRTC video/voice and data channels",
-  "version": "10.0.12",
+  "version": "10.0.13",
   "type": "module",
   "author": {
     "name": "ThaUnknown",
@@ -12,10 +12,10 @@
     "url": "https://github.com/thaunknown/simple-websocket/issues"
   },
   "dependencies": {
-    "debug": "^4.3.7",
+    "debug": "^4.4.3",
     "err-code": "^3.0.1",
-    "streamx": "^2.20.1",
-    "uint8-util": "^2.2.5",
+    "streamx": "^2.23.0",
+    "uint8-util": "^2.2.6",
     "webrtc-polyfill": "^1.1.10"
   },
   "devDependencies": {
