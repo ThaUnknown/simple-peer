@@ -44,6 +44,7 @@ test('signal event does not get emitted by non-initiator', function (t) {
   setTimeout(() => {
     t.pass('did not get signal after 1000ms')
     t.end()
+    peer.destroy()
   }, 1000)
 })
 

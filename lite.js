@@ -21,6 +21,29 @@ function warn (message) {
 }
 
 /**
+ * @param {Function} cb
+ * @param {number} timeout
+ * @param {...any} args
+ * @returns {ReturnType<typeof setTimeout>}
+ */
+function unrefTimeout (cb, timeout, ...args) {
+  const timer = setTimeout(cb, timeout, ...args)
+  timer.unref?.()
+  return timer
+}
+
+/**
+ * @param {Function} cb
+ * @param {number} interval
+ * @param {...any} args
+ * @returns {ReturnType<typeof setInterval>}
+ */
+function unrefInterval (cb, interval, ...args) {
+  const timer = setInterval(cb, interval, ...args)
+  timer.unref?.()
+  return timer
+}
+/**
  * WebRTC peer connection. Same API as node core `net.Socket`, plus a few extra methods.
  * Duplex stream.
  * @param {Object} opts
@@ -263,7 +286,7 @@ class Peer extends Duplex {
         this._debug('already negotiating, queueing')
       } else {
         this._debug('start negotiation')
-        setTimeout(() => { // HACK: Chrome crashes if we immediately call createOffer
+        unrefTimeout(() => { // HACK: Chrome crashes if we immediately call createOffer
           this._createOffer()
         }, 0)
       }
@@ -298,7 +321,7 @@ class Peer extends Duplex {
 
     this._debug('destroying (error: %s)', err && (err.message || err))
 
-    setTimeout(() => { // allow events concurrent with the call to _destroy() to fire (see #692)
+    unrefTimeout(() => { // allow events concurrent with the call to _destroy() to fire (see #692)
       if (this._connected) this.emit('disconnect')
       this._connected = false
       this._pcReady = false
@@ -388,7 +411,7 @@ class Peer extends Duplex {
     // HACK: Chrome will sometimes get stuck in readyState "closing", let's check for this condition
     // https://bugs.chromium.org/p/chromium/issues/detail?id=882743
     let isClosing = false
-    this._closingInterval = setInterval(() => { // No "onclosing" event
+    this._closingInterval = unrefInterval(() => { // No "onclosing" event
       if (this._channel && this._channel.readyState === 'closing') {
         if (isClosing) this._onChannelClose() // closing timed out: equivalent to onclose firing
         isClosing = true
@@ -428,7 +451,7 @@ class Peer extends Duplex {
     // Wait a bit before destroying so the socket flushes.
     // TODO: is there a more reliable way to accomplish this?
     const destroySoon = () => {
-      setTimeout(() => this.__destroy(), 1000)
+      unrefTimeout(() => this.__destroy(), 1000).unref?.()
     }
 
     if (this._connected) {
@@ -442,7 +465,7 @@ class Peer extends Duplex {
     if (this.destroyed) return
     if (this._iceCompleteTimer) return
     this._debug('started iceComplete timeout')
-    this._iceCompleteTimer = setTimeout(() => {
+    this._iceCompleteTimer = unrefTimeout(() => {
       if (!this._iceComplete) {
         this._iceComplete = true
         this._debug('iceComplete timeout completed')
@@ -715,12 +738,11 @@ class Peer extends Duplex {
         // Ignore candidate pair selection in browsers like Safari 11 that do not have any local or remote candidates
         // But wait until at least 1 candidate pair is available
         if (!foundSelectedCandidatePair && (!Object.keys(candidatePairs).length || Object.keys(localCandidates).length)) {
-          setTimeout(findCandidatePair, 100)
+          unrefTimeout(findCandidatePair, 100)
           return
         } else {
           this._connecting = false
           this._connected = true
-          this.emit('connect')
         }
 
         if (this._chunk) {
@@ -738,10 +760,9 @@ class Peer extends Duplex {
         }
 
         // If `bufferedAmountLowThreshold` and 'onbufferedamountlow' are unsupported,
-        // fallback to using setInterval to implement backpressure.
+        // fallback to using unrefInterval to implement backpressure.
         if (typeof this._channel.bufferedAmountLowThreshold !== 'number') {
-          this._interval = setInterval(() => this._onInterval(), 150)
-          if (this._interval.unref) this._interval.unref()
+          this._interval = unrefInterval(() => this._onInterval(), 150)
         }
 
         this._debug('connect')

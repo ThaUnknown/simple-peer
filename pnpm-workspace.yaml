@@ -1,3 +1,9 @@
+allowBuilds:
+  node-datachannel: true
+  registry-js: false
+  win-version-info: false
+minimumReleaseAgeExclude:
+  - webrtc-polyfill@1.2.1
 onlyBuiltDependencies:
   - node-datachannel
   - registry-js
