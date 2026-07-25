@@ -1,7 +1,7 @@
 {
   "name": "@thaunknown/simple-peer",
   "description": "Simple one-to-one WebRTC video/voice and data channels",
-  "version": "10.1.1",
+  "version": "10.1.2",
   "type": "module",
   "author": {
     "name": "ThaUnknown",
@@ -14,9 +14,9 @@
   "dependencies": {
     "debug": "^4.4.3",
     "err-code": "^3.0.1",
-    "streamx": "^2.25.0",
-    "uint8-util": "^2.2.6",
-    "webrtc-polyfill": "^1.2.1"
+    "streamx": "^2.28.0",
+    "uint8-util": "^2.3.2",
+    "webrtc-polyfill": "^1.2.2"
   },
   "devDependencies": {
     "@babel/core": "^7.26.0",
