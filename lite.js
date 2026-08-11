@@ -11,9 +11,12 @@ const MAX_BUFFERED_AMOUNT = 64 * 1024
 const ICECOMPLETE_TIMEOUT = 5 * 1000
 const CHANNEL_CLOSING_TIMEOUT = 5 * 1000
 
-// HACK: Filter trickle lines when trickle is disabled #354
+// HACK: Remove the trickle ice-option when trickle is disabled #354
 function filterTrickle (sdp) {
-  return sdp.replace(/a=ice-options:trickle\s\n/g, '')
+  return sdp.replace(/a=ice-options:([^\r\n]*)(\r?\n)/g, (line, options, eol) => {
+    const remaining = options.split(/\s+/).filter(opt => opt && opt !== 'trickle')
+    return remaining.length ? `a=ice-options:${remaining.join(' ')}${eol}` : ''
+  })
 }
 
 function warn (message) {
@@ -481,16 +484,16 @@ class Peer extends Duplex {
     this._pc.createOffer(this.offerOptions)
       .then(offer => {
         if (this.destroyed) return
-        if (!this.trickle && !this.allowHalfTrickle) offer.sdp = filterTrickle(offer.sdp)
         offer.sdp = this.sdpTransform(offer.sdp)
 
         const sendOffer = () => {
           if (this.destroyed) return
           const signal = this._pc.localDescription || offer
+          const sdp = (!this.trickle && !this.allowHalfTrickle) ? filterTrickle(signal.sdp) : signal.sdp
           this._debug('signal')
           this.emit('signal', {
             type: signal.type,
-            sdp: signal.sdp
+            sdp
           })
         }
 
@@ -520,16 +523,16 @@ class Peer extends Duplex {
     this._pc.createAnswer(this.answerOptions)
       .then(answer => {
         if (this.destroyed) return
-        if (!this.trickle && !this.allowHalfTrickle) answer.sdp = filterTrickle(answer.sdp)
         answer.sdp = this.sdpTransform(answer.sdp)
 
         const sendAnswer = () => {
           if (this.destroyed) return
           const signal = this._pc.localDescription || answer
+          const sdp = (!this.trickle && !this.allowHalfTrickle) ? filterTrickle(signal.sdp) : signal.sdp
           this._debug('signal')
           this.emit('signal', {
             type: signal.type,
-            sdp: signal.sdp
+            sdp
           })
           if (!this.initiator) this._requestMissingTransceivers?.()
         }
